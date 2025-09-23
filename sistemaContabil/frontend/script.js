@@ -1,3 +1,5 @@
+import { app } from "./firebase-config";
+
 document.addEventListener('DOMContentLoaded', () => {
     const API_URL = 'http://localhost:3333/api';
     let todasAsContas = [];
