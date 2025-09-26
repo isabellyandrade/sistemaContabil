@@ -9,7 +9,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0"
@@ -20,6 +19,6 @@
     "@types/node": "^24.3.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.2"
-  }
-  
+  },
+  "description": ""
 }

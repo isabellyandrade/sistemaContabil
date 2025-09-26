@@ -3,7 +3,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 
 const app = express();
-const PORT = 3333;
+// REMOVIDA A DECLARAÇÃO DA PORTA E app.listen() para funcionar como Serverless Function na Vercel
 
 app.use(cors());
 app.use(express.json());
@@ -28,7 +28,7 @@ interface Lancamento {
   contaCreditoId: number;
 }
 
-// Array para o Plano de Contas
+// Array para o Plano de Contas (Dados em memória - serão perdidos em cold starts da Vercel)
 let contas: Conta[] = [
   { id: 1, codigo: "1.1.01.001", nome_conta: "Caixa Geral", grupo_contabil: "Ativo", subgrupo1: "Ativo Circulante", subgrupo2: "Disponibilidades" },
   { id: 2, codigo: "2.1.01.001", nome_conta: "Fornecedores Nacionais", grupo_contabil: "Passivo", subgrupo1: "Passivo Circulante", subgrupo2: "Obrigações" },
@@ -36,7 +36,7 @@ let contas: Conta[] = [
 ];
 let proximoContaId = 4;
 
-// Array para Lançamentos
+// Array para Lançamentos (Dados em memória - serão perdidos em cold starts da Vercel)
 let lancamentos: Lancamento[] = [];
 let proximoLancamentoId = 1;
 
@@ -66,7 +66,7 @@ app.post('/api/lancamentos', (req: Request, res: Response) => {
     const { historico, valor, contaDebitoId, contaCreditoId } = req.body;
     const novoLancamento: Lancamento = {
         id: proximoLancamentoId++, data: new Date().toLocaleDateString('pt-BR'), historico,
-        valor: parseFloat(valor), contaDebitoId: parseInt(contaDebitoId), contaCreditoId: parseInt(contaCreditoId),
+        valor: parseFloat(valor), contaDebitoId: parseInt(contaDebitoId as string), contaCreditoId: parseInt(contaCreditoId as string),
     };
     lancamentos.push(novoLancamento);
     return res.status(201).json(novoLancamento);
@@ -130,6 +130,7 @@ app.get('/api/balanco-patrimonial', (req: Request, res: Response) => {
 
     return res.status(200).json(relatorio);
 });
-app.listen(PORT, () => {
-  console.log(`Servidor backend rodando na porta ${PORT}`);
-});
+
+// A Vercel exige que a aplicação Express seja EXPORTADA.
+// A chamada app.listen() foi REMOVIDA.
+export default app;
