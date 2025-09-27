@@ -8,5 +8,7 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true
-  }
+  },
+  "include": ["src/**/*"],     // Inclui todos os arquivos da pasta 'src' na compilação
+  "exclude": ["node_modules"]
 }
