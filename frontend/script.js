@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const API_URL = 'https://sistema-contabilisa.onrender.com'; // Para Vercel/Render. Para teste local, use 'http://localhost:3333/api'
+    const API_URL = 'https://sistema-contabilisa.onrender.com'; 
     let todasAsContas = [];
 
   // --- ELEMENTOS PRINCIPAIS ---
