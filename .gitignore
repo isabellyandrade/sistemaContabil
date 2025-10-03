@@ -1,0 +1,11 @@
+# Dependências do Node (pastas gigantes que podem ser reinstaladas)
+/node_modules/
+/backend/node_modules/
+
+# Código compilado (pasta que é gerada automaticamente com 'npm run build')
+/dist/
+/backend/dist/
+
+# Chaves secretas e arquivos de ambiente (A PARTE MAIS IMPORTANTE)
+.env
+/backend/serviceAccountKey.json
