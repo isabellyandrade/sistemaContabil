@@ -160,10 +160,29 @@ app.post("/api/empresas/membros", verificarToken, verificarMembro, async (req: R
 
 // --- ROTAS CONTAS ---
 app.get("/api/contas", verificarToken, verificarMembro, async (req: Request, res: Response) => {
-  const empresaId = (req as any).empresaId;
-  const snapshot = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
-  res.status(200).json(firebaseObjectToArray(snapshot.val()));
+    try {
+        const empresaId = (req as any).empresaId;
+
+        // BUSCA 1: Contas que pertencem à empresa selecionada
+        const snapshotEmpresa = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+        const contasDaEmpresa = firebaseObjectToArray(snapshotEmpresa.val());
+
+        // BUSCA 2: Contas globais, que todos podem ver
+        // (No nosso caso, usamos a etiqueta 'GLOBAL' no campo 'dono_uid')
+        const snapshotGlobal = await db.ref("contas").orderByChild('dono_uid').equalTo('GLOBAL').once("value");
+        const contasGlobais = firebaseObjectToArray(snapshotGlobal.val());
+
+        // Junta as duas listas em uma só
+        const contasCombinadas = [...contasGlobais, ...contasDaEmpresa];
+       
+        return res.status(200).json(contasCombinadas);
+
+    } catch (error) {
+        console.error("Erro ao buscar contas:", error);
+        return res.status(500).json({ message: "Erro interno no servidor ao buscar contas." });
+    }
 });
+
 
 app.post("/api/contas", verificarToken, verificarMembro, async (req: Request, res: Response) => {
   const empresaId = (req as any).empresaId; // E esta também!
