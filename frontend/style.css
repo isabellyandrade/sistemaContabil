@@ -163,15 +163,15 @@ tfoot {
     display: block; /* Faz a imagem se comportar como um bloco para o 'margin: auto' */
     margin-left: auto; /* Centraliza horizontalmente */
     margin-right: auto; /* Centraliza horizontalmente */
-    max-width: 250px; /* Aumentei um pouco para ficar mais visível, ajuste se quiser */
+    max-width: 150px; /* Aumentei um pouco para ficar mais visível, ajuste se quiser */
     height: auto;
-    margin-bottom: 30px; /* Um pouco mais de espaço entre a logo e o texto */
-    margin-top: 20px; /* Adiciona um espaço no topo do card, se necessário */
+    margin-bottom: 15px; /* Um pouco mais de espaço entre a logo e o texto */
+    margin-top: 15px; /* Adiciona um espaço no topo do card, se necessário */
 }
 
 /* Opcional: Ajustar o card em si para melhor visualização */
 .card {
-    padding: 30px; /* Aumenta o espaçamento interno do card */
+    padding: 20px; /* Aumenta o espaçamento interno do card */
     display: flex; /* Transforma o card em um flex container */
     flex-direction: column; /* Organiza os itens em coluna */
     align-items: center; /* Centraliza os itens horizontalmente dentro do card */
@@ -187,7 +187,7 @@ tfoot {
 
 /* Para a logo no menu lateral */
 .logo-menu {
-    max-width: 200px; /* Ajuste o tamanho conforme preferir */
+    max-width: 220px; /* Ajuste o tamanho conforme preferir */
     height: auto;
-    padding: 10px 0; /* Um pouco de espaço em cima e embaixo */
+    padding: 5px 0; /* Um pouco de espaço em cima e embaixo */
 }
