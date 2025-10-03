@@ -157,19 +157,14 @@ tfoot {
   background-color: #f7f9fa;
 }
 
-/* Para a logo na tela de login */
-/* Para a logo na tela de login */
 .logo-login {
-    display: block; /* Faz a imagem se comportar como um bloco para o 'margin: auto' */
+    max-width: 100px; /* Ajuste o tamanho conforme preferir */
     margin-left: auto; /* Centraliza horizontalmente */
     margin-right: auto; /* Centraliza horizontalmente */
-    max-width: 10px; /* Aumentei um pouco para ficar mais visível, ajuste se quiser */
     height: auto;
-    margin-bottom: 15px; /* Um pouco mais de espaço entre a logo e o texto */
-    margin-top: 15px; /* Adiciona um espaço no topo do card, se necessário */
+    padding: 5px 0; /* Um pouco de espaço em cima e embaixo */
 }
 
-/* Opcional: Ajustar o card em si para melhor visualização */
 .card {
     padding: 20px; /* Aumenta o espaçamento interno do card */
     display: flex; /* Transforma o card em um flex container */
@@ -179,13 +174,11 @@ tfoot {
     text-align: center; /* Garante que o texto também seja centralizado */
 }
 
-/* Opcional: Ajustar o espaçamento do parágrafo */
 .card p {
     margin-top: 15px; /* Espaçamento entre o parágrafo e o botão */
     margin-bottom: 20px;
 }
 
-/* Para a logo no menu lateral */
 .logo-menu {
     max-width: 200px; /* Ajuste o tamanho conforme preferir */
     margin-left: auto; /* Centraliza horizontalmente */
