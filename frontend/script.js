@@ -21,11 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_URL = 'https://sistema-contabilisa.onrender.com/api'; 
     let todasAsContas = [];
 
+  const formConvidarMembro = document.getElementById('form-convidar-membro');
+
   // --- NOVOS ELEMENTOS DA TELA DE EMPRESAS ---
   const telaEmpresas = document.getElementById('tela-empresas');
   const appPrincipal = document.getElementById('app-principal');
   const listaEmpresasDiv = document.getElementById('lista-empresas');
   const formNovaEmpresa = document.getElementById('form-nova-empresa');
+
   // --- ELEMENTOS PRINCIPAIS ---
   const tabelaContasCorpo = document.getElementById('tabela-contas-corpo');
   const modal = document.getElementById('modal-nova-conta');
@@ -366,24 +369,46 @@ document.addEventListener('DOMContentLoaded', () => {
       btnGerarBalanco.addEventListener('click', gerarBalancoPatrimonial);
       btnGerarRazao.addEventListener('click', gerarLivroRazao);
       
-      // Lógica para o botão de logout
-      const btnLogout = document.getElementById('btn-logout');
-      if (btnLogout) {
-          btnLogout.addEventListener('click', () => {
-              signOut(auth).catch(error => console.error("Erro no logout:", error));
-              // O 'onAuthStateChanged' vai detectar o logout e fazer o redirecionamento
-          });
-      }
-      
-      await carregarContas();
-      await popularDropdownsContas();
-      await carregarLancamentos();
-      showPage('dashboard');
+      if (formConvidarMembro) {
+        formConvidarMembro.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const emailInput = document.getElementById('email-convite');
+            const emailConvidado = emailInput.value;
+            if (!emailConvidado) return;
 
-      if (dataReferenciaElement) {
-          const hoje = new Date();
-          dataReferenciaElement.textContent = hoje.toLocaleDateString('pt-BR');
-      }
+            try {
+                const response = await fetchAutenticado('/empresas/membros', {
+                    method: 'POST',
+                    body: JSON.stringify({ emailConvidado })
+                });
+                const resultado = await response.json();
+                alert(resultado.message); // Exibe a mensagem de sucesso ou erro
+                emailInput.value = '';
+            } catch (error) {
+                console.error("Erro ao convidar membro:", error);
+                alert("Falha ao convidar membro. Verifique o e-mail e tente novamente.");
+            }
+        });
+    }
+
+    // Lógica para o botão de logout
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            signOut(auth).catch(error => console.error("Erro no logout:", error));
+            // O 'onAuthStateChanged' vai detectar o logout e fazer o redirecionamento
+        });
+    }
+    
+    await carregarContas();
+    await popularDropdownsContas();
+    await carregarLancamentos();
+    showPage('dashboard');
+
+    if (dataReferenciaElement) {
+        const hoje = new Date();
+        dataReferenciaElement.textContent = hoje.toLocaleDateString('pt-BR');
+    }
   }
 });
 

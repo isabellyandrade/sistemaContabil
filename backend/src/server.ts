@@ -119,6 +119,45 @@ app.get("/api/empresas", verificarToken, async (req: Request, res: Response) => 
     } catch (error) { res.status(500).json({ message: "Erro ao listar empresas." }); }
 });
 
+// Rota para CONVIDAR um novo membro para uma empresa
+app.post("/api/empresas/membros", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    const uidDoProprietario = (req as any).user.uid;
+    const empresaId = (req as any).empresaId;
+    const { emailConvidado } = req.body;
+
+    if (!emailConvidado) {
+        return res.status(400).json({ message: "O e-mail do convidado é obrigatório." });
+    }
+
+    try {
+        // Primeiro, verificamos se quem está convidando é de fato o proprietário da empresa
+        const empresaSnap = await db.ref(`empresas/${empresaId}`).once('value');
+        if (empresaSnap.val().proprietario_uid !== uidDoProprietario) {
+            return res.status(403).json({ message: "Apenas o proprietário pode convidar novos membros." });
+        }
+
+        // Encontra o usuário a ser convidado pelo e-mail
+        const usuarioConvidado = await admin.auth().getUserByEmail(emailConvidado);
+        const uidDoConvidado = usuarioConvidado.uid;
+
+        // Adiciona o novo membro à empresa
+        await db.ref(`membros/${empresaId}/${uidDoConvidado}`).set({
+            email: emailConvidado,
+            funcao: "membro"
+        });
+
+        res.status(200).json({ message: `Usuário ${emailConvidado} convidado com sucesso!` });
+
+    } catch (error) {
+        console.error("Erro ao convidar membro:", error);
+        // Trata erro comum de "usuário não encontrado"
+        if (error.code === 'auth/user-not-found') {
+            return res.status(404).json({ message: `Usuário com e-mail ${emailConvidado} não encontrado.` });
+        }
+        res.status(500).json({ message: "Erro interno ao convidar membro." });
+    }
+});
+
 // --- ROTAS CONTAS ---
 app.get("/api/contas", verificarToken, verificarMembro, async (req: Request, res: Response) => {
   const empresaId = (req as any).empresaId;
