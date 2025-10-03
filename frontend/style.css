@@ -156,3 +156,17 @@ tfoot {
   margin-top: 10px;
   background-color: #f7f9fa;
 }
+
+/* Para a logo na tela de login */
+.logo-login {
+    max-width: 200px; /* Ajuste o tamanho conforme preferir */
+    height: auto;
+    margin-bottom: 20px; /* Espaço abaixo da logo */
+}
+
+/* Para a logo no menu lateral */
+.logo-menu {
+    max-width: 180px; /* Ajuste o tamanho conforme preferir */
+    height: auto;
+    padding: 10px 0; /* Um pouco de espaço em cima e embaixo */
+}
