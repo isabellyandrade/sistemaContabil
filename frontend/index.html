@@ -8,21 +8,36 @@
   <script src="script.js" type="module"></script>
 </head>
 <body>
-  <div class="app-container">
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <img src="logoMenu.png" alt="ContabilIsa - Sistema Contábil" class="logo-menu">
-      </div>
-      <ul class="menu">
-        <li data-page="dashboard" class="active">Página Inicial</li>
-        <li data-page="setup" class="active">Setup de Contas</li>
-        <li data-page="livro-diario">Livro Diário</li>
-        <li data-page="livro-razao">Livro Razão</li> 
-        <li data-page="balancete">Balanço Patrimonial</li>
-        
-        <li id="btn-logout" style="color: #f39c12; margin-top: 20px; cursor: pointer;">Sair</li>
-      </ul>
-    </aside>
+  <div id="tela-empresas" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5;">
+        <div style="background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; max-width: 500px; width: 90%;">
+            <h2>Minhas Empresas</h2>
+            <p style="color: #7f8c8d;">Selecione uma empresa para começar ou crie uma nova.</p>
+            <div id="lista-empresas" style="margin-top: 20px;">
+                </div>
+            <hr style="margin: 20px 0;">
+            <h4>Não tem uma empresa? Crie agora.</h4>
+            <form id="form-nova-empresa" style="display: flex; gap: 10px; margin-top: 10px;">
+                <input type="text" id="nome-nova-empresa" placeholder="Nome da Empresa Fictícia" required style="flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                <button type="submit" style="padding: 10px 15px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Criar Empresa</button>
+            </form>
+        </div>
+  </div>
+  <div id="app-principal" style="display: none;">
+    <div class="app-container">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <img src="logoMenu.png" alt="ContabilIsa - Sistema Contábil" class="logo-menu">
+        </div>
+        <ul class="menu">
+          <li data-page="dashboard" class="active">Página Inicial</li>
+          <li data-page="setup">Setup de Contas</li>
+          <li data-page="livro-diario">Livro Diário</li>
+          <li data-page="livro-razao">Livro Razão</li> 
+          <li data-page="balancete">Balanço Patrimonial</li>
+          
+          <li id="btn-logout" style="color: #f39c12; margin-top: 20px; cursor: pointer;">Sair</li>
+        </ul>
+      </aside>
 
     <main class="main-content">
       <!-- DASHBOARD -->
@@ -37,7 +52,7 @@
       </section>
       
       <!-- SETUP DE CONTAS -->
-      <section id="page-setup" class="page active">
+      <section id="page-setup">
         <header>
           <h1>Setup de Contas Contábeis</h1>
         </header>

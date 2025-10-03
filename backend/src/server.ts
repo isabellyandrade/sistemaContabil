@@ -46,6 +46,29 @@ const verificarToken = async (req: Request, res: Response, next: NextFunction) =
     }
 };
 
+// --- NOVO MIDDLEWARE PARA VERIFICAR SE O USUÁRIO É MEMBRO DA EMPRESA ---
+const verificarMembro = async (req: Request, res: Response, next: NextFunction) => {
+    const uidDoUsuario = (req as any).user.uid;
+    // O ID da empresa será enviado pelo frontend em um cabeçalho customizado
+    const empresaId = req.headers['x-empresa-id'] as string;
+
+    if (!empresaId) {
+        return res.status(400).send({ message: 'ID da empresa não fornecido no cabeçalho X-Empresa-ID.' });
+    }
+
+    // Verifica no banco se existe um registro na "gaveta" de membros
+    const snapshotMembro = await db.ref(`membros/${empresaId}/${uidDoUsuario}`).once("value");
+    
+    if (snapshotMembro.exists()) {
+        // Se existe, anexa o ID da empresa na requisição e libera a passagem
+        (req as any).empresaId = empresaId;
+        next();
+    } else {
+        // Se não existe, bloqueia o acesso
+        return res.status(403).send({ message: 'Acesso negado. Você não pertence a esta empresa.' });
+    }
+};
+
 // --- FUNÇÃO AUXILIAR PARA FORMATAR RESPOSTA DO FIREBASE ---
 const firebaseObjectToArray = (snapshotVal: object | null): any[] => {
     if (!snapshotVal) return [];
@@ -56,27 +79,66 @@ const firebaseObjectToArray = (snapshotVal: object | null): any[] => {
 // ===================================================
 // ROTAS DA API (TODAS PROTEGIDAS E COM LÓGICA MULTI-USUÁRIO)
 // ===================================================
+// ===================================================
+// NOVAS ROTAS PARA GERENCIAR EMPRESAS
+// ===================================================
 
-// --- ROTAS CONTAS ---
-app.get("/api/contas", verificarToken, async (req: Request, res: Response) => {
-    const uidDoDono = (req as any).user.uid;
-    const snapshot = await db.ref("contas").orderByChild('dono_uid').equalTo(uidDoDono).once("value");
-    res.status(200).json(firebaseObjectToArray(snapshot.val()));
+// Rota para CRIAR uma nova empresa
+app.post("/api/empresas", verificarToken, async (req: Request, res: Response) => {
+    const uidDoUsuario = (req as any).user.uid;
+    const { nomeEmpresa } = req.body;
+    if (!nomeEmpresa) return res.status(400).json({ message: "O nome da empresa é obrigatório." });
+
+    try {
+        const novaEmpresa = { nome: nomeEmpresa, proprietario_uid: uidDoUsuario };
+        const refEmpresa = db.ref("empresas").push();
+        await refEmpresa.set(novaEmpresa);
+        const idEmpresa = refEmpresa.key;
+
+        await db.ref(`membros/${idEmpresa}/${uidDoUsuario}`).set({ email: (req as any).user.email, funcao: "proprietario" });
+
+        res.status(201).json({ id: idEmpresa, ...novaEmpresa });
+    } catch (error) { res.status(500).json({ message: "Erro ao criar empresa." }); }
 });
 
-app.post("/api/contas", verificarToken, async (req: Request, res: Response) => {
-    const uidDoDono = (req as any).user.uid;
-    const novaConta = { ...req.body, dono_uid: uidDoDono };
-    const ref = db.ref("contas").push();
-    await ref.set(novaConta);
-    res.status(201).json({ id: ref.key, ...novaConta });
+// Rota para LISTAR as empresas que o usuário logado participa
+app.get("/api/empresas", verificarToken, async (req: Request, res: Response) => {
+    const uidDoUsuario = (req as any).user.uid;
+    try {
+        const todasAsEmpresasSnap = await db.ref("empresas").once("value");
+        const todasAsEmpresas = firebaseObjectToArray(todasAsEmpresasSnap.val());
+        const minhasEmpresas = [];
+
+        for (const empresa of todasAsEmpresas) {
+            const membroSnap = await db.ref(`membros/${empresa.id}/${uidDoUsuario}`).once("value");
+            if (membroSnap.exists()) {
+                minhasEmpresas.push(empresa);
+            }
+        }
+        res.status(200).json(minhasEmpresas);
+    } catch (error) { res.status(500).json({ message: "Erro ao listar empresas." }); }
+});
+
+// --- ROTAS CONTAS ---
+app.get("/api/contas", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+  const empresaId = (req as any).empresaId;
+  const snapshot = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+  res.status(200).json(firebaseObjectToArray(snapshot.val()));
+});
+
+app.post("/api/contas", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+  const empresaId = (req as any).empresaId; // E esta também!
+  const novaConta = { ...req.body, empresa_id: empresaId };
+  const ref = db.ref("contas").push();
+  await ref.set(novaConta);
+  res.status(201).json({ id: ref.key, ...novaConta });
 });
 
 // --- ROTAS LANÇAMENTOS ---
-app.get("/api/lancamentos", verificarToken, async (req: Request, res: Response) => {
-    const uidDoDono = (req as any).user.uid;
-    const contasSnap = await db.ref("contas").orderByChild('dono_uid').equalTo(uidDoDono).once("value");
-    const lancSnap = await db.ref("lancamentos").orderByChild('dono_uid').equalTo(uidDoDono).once("value");
+app.get("/api/lancamentos", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    const empresaId = (req as any).empresaId;;
+    const contasSnap = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+    const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
 
     const contas = firebaseObjectToArray(contasSnap.val());
     const lancamentos = firebaseObjectToArray(lancSnap.val());
@@ -89,8 +151,8 @@ app.get("/api/lancamentos", verificarToken, async (req: Request, res: Response) 
     res.status(200).json(lancamentosComNomes);
 });
 
-app.post("/api/lancamentos", verificarToken, async (req: Request, res: Response) => {
-    const uidDoDono = (req as any).user.uid;
+app.post("/api/lancamentos", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    const empresaId = (req as any).empresaId;;
     const { historico, valor, contaDebitoId, contaCreditoId } = req.body;
     const novoLancamento = {
         data: new Date().toLocaleDateString("pt-BR"),
@@ -98,7 +160,7 @@ app.post("/api/lancamentos", verificarToken, async (req: Request, res: Response)
         valor: parseFloat(valor),
         contaDebitoId,
         contaCreditoId,
-        dono_uid: uidDoDono
+        empresa_id: empresaId
     };
     const ref = db.ref("lancamentos").push();
     await ref.set(novoLancamento);
@@ -107,10 +169,10 @@ app.post("/api/lancamentos", verificarToken, async (req: Request, res: Response)
 
 // --- ROTAS DE RELATÓRIOS ---
 
-app.get("/api/balanco-patrimonial", verificarToken, async (req: Request, res: Response) => {
-    const uidDoDono = (req as any).user.uid;
-    const contasSnap = await db.ref("contas").orderByChild('dono_uid').equalTo(uidDoDono).once("value");
-    const lancSnap = await db.ref("lancamentos").orderByChild('dono_uid').equalTo(uidDoDono).once("value");
+app.get("/api/balanco-patrimonial", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    const empresaId = (req as any).empresaId;;
+    const contasSnap = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+    const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
 
     const contas = firebaseObjectToArray(contasSnap.val());
     const lancamentos = firebaseObjectToArray(lancSnap.val());
@@ -129,12 +191,12 @@ app.get("/api/balanco-patrimonial", verificarToken, async (req: Request, res: Re
     return res.status(200).json(relatorio);
 });
 
-app.get("/api/livro-razao/:contaId", verificarToken, async (req: Request, res: Response) => {
-    const uidDoDono = (req as any).user.uid;
+app.get("/api/livro-razao/:contaId", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    const empresaId = (req as any).empresaId;
     const contaId = req.params.contaId;
 
-    const contasSnap = await db.ref("contas").orderByChild('dono_uid').equalTo(uidDoDono).once("value");
-    const lancSnap = await db.ref("lancamentos").orderByChild('dono_uid').equalTo(uidDoDono).once("value");
+    const contasSnap = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+    const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
 
     const contas = firebaseObjectToArray(contasSnap.val());
     const lancamentos = firebaseObjectToArray(lancSnap.val());

@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Se o usuário está logado, o app continua e chama a função principal.
             console.log("Acesso permitido para:", user.displayName);
             document.getElementById('nome-usuario').textContent = user.displayName;
-            inicializarApp(); // <--- Inicia o aplicativo de verdade
+            carregarMinhasEmpresas(); // <--- Inicia o aplicativo de verdade
         } else {
             // Se não há usuário, redireciona para a tela de login.
             console.log("Acesso negado. Redirecionando para login...");
@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_URL = 'https://sistema-contabilisa.onrender.com/api'; 
     let todasAsContas = [];
 
+  // --- NOVOS ELEMENTOS DA TELA DE EMPRESAS ---
+  const telaEmpresas = document.getElementById('tela-empresas');
+  const appPrincipal = document.getElementById('app-principal');
+  const listaEmpresasDiv = document.getElementById('lista-empresas');
+  const formNovaEmpresa = document.getElementById('form-nova-empresa');
   // --- ELEMENTOS PRINCIPAIS ---
   const tabelaContasCorpo = document.getElementById('tabela-contas-corpo');
   const modal = document.getElementById('modal-nova-conta');
@@ -60,10 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error("Usuário não autenticado.");
       }
       const token = await user.getIdToken();
+      const empresaId = localStorage.getItem('empresa_id_selecionada');
 
       const defaultHeaders = {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // <--- O CRACHÁ!
+          'Authorization': `Bearer ${token}`, // <--- O CRACHÁ!
+          'X-Empresa-ID': empresaId || '' // <--- ID da empresa selecionada
       };
 
       const finalOptions = {
@@ -79,6 +86,53 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error(`Erro na chamada API para ${endpoint}: ${response.statusText}`);
       }
       return response;
+  }
+
+  // --- LÓGICA DA NOVA TELA DE EMPRESAS ---
+  async function carregarMinhasEmpresas() {
+      try {
+          const response = await fetchAutenticado('/empresas');
+          const empresas = await response.json();
+
+          listaEmpresasDiv.innerHTML = '';
+          if (empresas.length === 0) {
+              listaEmpresasDiv.innerHTML = '<p style="margin: 20px 0; color: #7f8c8d;">Você ainda não participa de nenhuma empresa.</p>';
+          } else {
+              empresas.forEach(empresa => {
+                  const btn = document.createElement('button');
+                  btn.style.cssText = "display: block; width: 100%; padding: 15px; margin-bottom: 10px; cursor: pointer; font-size: 16px;";
+                  btn.textContent = empresa.nome;
+                  btn.onclick = () => selecionarEmpresa(empresa.id, empresa.nome);
+                  listaEmpresasDiv.appendChild(btn);
+              });
+          }
+      } catch (error) { console.error("Erro ao carregar empresas:", error); }
+  }
+
+  formNovaEmpresa.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nomeEmpresaInput = document.getElementById('nome-nova-empresa');
+      const nomeEmpresa = nomeEmpresaInput.value;
+      if (!nomeEmpresa) return;
+
+      try {
+          await fetchAutenticado('/empresas', { method: 'POST', body: JSON.stringify({ nomeEmpresa }) });
+          nomeEmpresaInput.value = '';
+          carregarMinhasEmpresas();
+      } catch (error) { console.error("Erro ao criar empresa:", error); alert('Falha ao criar empresa.'); }
+  });
+
+  function selecionarEmpresa(empresaId, nomeEmpresa) {
+      localStorage.setItem('empresa_id_selecionada', empresaId);
+
+      telaEmpresas.style.display = 'none';
+      appPrincipal.style.display = 'block';
+
+      // Atualiza o header da sidebar com o nome da empresa
+      const sidebarHeader = document.querySelector('.sidebar-header h3');
+      if(sidebarHeader) sidebarHeader.textContent = nomeEmpresa;
+
+      inicializarApp();
   }
 
   function showPage(pageId) {
