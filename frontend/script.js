@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const API_URL = 'https://sistema-contabilisa.onrender.com'; 
+    const API_URL = 'https://sistema-contabilisa.onrender.com/api'; 
     let todasAsContas = [];
 
   // --- ELEMENTOS PRINCIPAIS ---
@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function gerarBalancoPatrimonial() {
     try {
-      const response = await fetchAutenticado('/balanco-patrimonial'); // <-- MUDANÇA AQUI
+      const response = await fetchAutenticado('/balanco-patrimonial'); 
       const relatorio = await response.json();
       
       // Chama a função auxiliar para desenhar o lado do ATIVO
@@ -302,34 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderizarContas(contas, grupoPai) {
-    let html = ''; let total = 0;
-    contas.forEach(conta => {
-      const saldoExibicao = (grupoPai === 'Ativo') ? conta.saldo : conta.saldo * -1;
-      html += `<div class="balanco-conta"><span>&nbsp;&nbsp;&nbsp;&nbsp;${conta.nome_conta}</span><span>${saldoExibicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
-      total += saldoExibicao;
-    });
-    return { html, total };
-  }
-
-  function renderizarGrupos(grupos, grupoPai) {
-    let html = ''; let total = 0;
-    const chavesGrupos = Object.keys(grupos);
-    chavesGrupos.forEach(chaveGrupo => {
-      html += `<div class="balanco-grupo-titulo">${chaveGrupo}</div>`;
-      const subgrupos = grupos[chaveGrupo]; const chavesSubgrupos = Object.keys(subgrupos);
-      chavesSubgrupos.forEach(chaveSubgrupo => {
-        if (chaveSubgrupo && chaveSubgrupo !== 'undefined' && chaveSubgrupo.trim() !== '') { html += `<div class="balanco-conta"><span>&nbsp;&nbsp;<strong>${chaveSubgrupo}</strong></span><span></span></div>`;}
-        const contas = subgrupos[chaveSubgrupo];
-
-        console.log("Variável 'contas' que será renderizada:", contas); 
-
-        const resultadoContas = renderizarContas(contas, grupoPai);
-        html += resultadoContas.html; total += resultadoContas.total;
-      });
-    });
-    return { html, total };
-  }
 
   // --- INICIALIZAÇÃO DO APLICATIVO ---
   async function inicializarApp() {
