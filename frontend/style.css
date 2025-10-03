@@ -159,8 +159,8 @@ tfoot {
 
 .logo-login {
     max-width: 100px; /* Ajuste o tamanho conforme preferir */
-    margin-left: auto; /* Centraliza horizontalmente */
-    margin-right: auto; /* Centraliza horizontalmente */
+    margin-left: 200px; /* Centraliza horizontalmente */
+    margin-right: 200px; /* Centraliza horizontalmente */
     height: auto;
     padding: 5px 0; /* Um pouco de espaço em cima e embaixo */
 }
