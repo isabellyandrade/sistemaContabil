@@ -250,26 +250,57 @@ app.get("/api/balanco-patrimonial", verificarToken, verificarMembro, async (req:
 });
 
 app.get("/api/livro-razao/:contaId", verificarToken, verificarMembro, async (req: Request, res: Response) => {
-    const empresaId = (req as any).empresaId;
-    const contaId = req.params.contaId;
+    try {
+        const empresaId = (req as any).empresaId;
+        const contaId = req.params.contaId;
 
-    const contasSnap = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
-    const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
+        const contasSnap = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+        const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
 
-    const contas = firebaseObjectToArray(contasSnap.val());
-    const lancamentos = firebaseObjectToArray(lancSnap.val());
+        if (!contasSnap.exists()) {
+            return res.status(404).json({ message: "Nenhuma conta encontrada para esta empresa." });
+        }
 
-    const contaSelecionada = contas.find((c: any) => c.id === contaId);
-    if (!contaSelecionada) return res.status(404).json({ message: "Conta não encontrada ou não pertence a este usuário." });
+        const contas = firebaseObjectToArray(contasSnap.val());
+        const lancamentos = lancSnap.exists() ? firebaseObjectToArray(lancSnap.val()) : [];
 
-    const movimentos = lancamentos
-        .filter((l: any) => l.contaDebitoId === contaId || l.contaCreditoId === contaId)
-        .map((l: any) => ({ data: l.data, historico: l.historico, debito: l.contaDebitoId === contaId ? l.valor : 0, credito: l.contaCreditoId === contaId ? l.valor : 0 }));
-    
-    const totalDebito = movimentos.reduce((s, m) => s + m.debito, 0);
-    const totalCredito = movimentos.reduce((s, m) => s + m.credito, 0);
+        const contaSelecionada = contas.find((c: any) => c.id === contaId);
+        if (!contaSelecionada) {
+            return res.status(404).json({ message: "Conta não encontrada ou não pertence a esta empresa." });
+        }
 
-    return res.status(200).json({ conta: contaSelecionada, movimentos, totalDebito, totalCredito, saldoFinal: totalDebito - totalCredito });
+        const movimentos = lancamentos
+            .filter((l: any) => l.contaDebitoId === contaId || l.contaCreditoId === contaId)
+            .map((l: any) => {
+                // Garante que o valor seja sempre positivo para o cálculo.
+                const valorAbsoluto = Math.abs(l.valor || 0);
+
+                return {
+                    data: l.data,
+                    historico: l.historico,
+                    debito: l.contaDebitoId === contaId ? valorAbsoluto : 0,
+                    credito: l.contaCreditoId === contaId ? valorAbsoluto : 0
+                };
+            });
+        
+        // Opcional: Ordenar os movimentos por data
+        movimentos.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+
+        const totalDebito = movimentos.reduce((s, m) => s + m.debito, 0);
+        const totalCredito = movimentos.reduce((s, m) => s + m.credito, 0);
+
+        // O cálculo do saldo final depende da natureza da conta (se é devedora ou credora)
+        // Ex: Contas de Ativo/Despesa: Saldo = Débito - Crédito
+        // Ex: Contas de Passivo/Receita: Saldo = Crédito - Débito
+        // Para um razão geral, Débito - Crédito é o padrão.
+        const saldoFinal = totalDebito - totalCredito;
+
+        return res.status(200).json({ conta: contaSelecionada, movimentos, totalDebito, totalCredito, saldoFinal });
+
+    } catch (error) {
+        console.error("Erro ao gerar livro razão:", error);
+        return res.status(500).json({ message: "Ocorreu um erro interno no servidor." });
+    }
 });
 
 // ===================================================
