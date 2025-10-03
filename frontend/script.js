@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             // Se o usuário está logado, o app continua e chama a função principal.
             console.log("Acesso permitido para:", user.displayName);
+            document.getElementById('nome-usuario').textContent = user.displayName;
             inicializarApp(); // <--- Inicia o aplicativo de verdade
         } else {
             // Se não há usuário, redireciona para a tela de login.
@@ -323,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await carregarContas();
       await popularDropdownsContas();
       await carregarLancamentos();
-      showPage('setup');
+      showPage('dashboard');
 
       if (dataReferenciaElement) {
           const hoje = new Date();

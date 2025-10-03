@@ -14,6 +14,7 @@
         <img src="logoMenu.png" alt="ContabilIsa - Sistema Contábil" class="logo-menu">
       </div>
       <ul class="menu">
+        <li data-page="dashboard" class="active">Página Inicial</li>
         <li data-page="setup" class="active">Setup de Contas</li>
         <li data-page="livro-diario">Livro Diário</li>
         <li data-page="livro-razao">Livro Razão</li> 
@@ -24,6 +25,16 @@
     </aside>
 
     <main class="main-content">
+      <!-- DASHBOARD -->
+      <section id="page-dashboard" class="page active">
+        <header>
+          <h1 id="header-empresa">Seu Dashboard</h1> 
+        </header>
+        <div class="container">
+          <h2>Bem-vindo, <span id="nome-usuario"></span>!</h2>
+          <p>Este é o resumo da sua empresa. O que você gostaria de fazer hoje?</p>
+          </div>
+      </section>
       
       <!-- SETUP DE CONTAS -->
       <section id="page-setup" class="page active">
