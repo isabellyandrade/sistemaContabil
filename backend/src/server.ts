@@ -148,7 +148,7 @@ app.post("/api/empresas/membros", verificarToken, verificarMembro, async (req: R
 
         res.status(200).json({ message: `Usuário ${emailConvidado} convidado com sucesso!` });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Erro ao convidar membro:", error);
         // Trata erro comum de "usuário não encontrado"
         if (error.code === 'auth/user-not-found') {
