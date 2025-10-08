@@ -123,7 +123,15 @@ tfoot {
 .balanco-lado {
   flex: 1; /* Faz com que cada lado ocupe 50% do espaço */
 }
+/* Novo estilo para a área de Receitas e Despesas */
+.resultado-container {
+  display: flex;
+  gap: 1.5rem; /* Espaço entre as colunas de receita e despesa */
+}
 
+.resultado-container > div {
+  flex: 1; /* Faz com que cada coluna ocupe metade do espaço */
+}
 .balanco-header {
   background-color: #ecf0f1;
   padding: 10px;

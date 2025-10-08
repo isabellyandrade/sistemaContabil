@@ -127,34 +127,30 @@
       </section>
 
       <!-- BALANÇO PATRIMONIAL -->
-      <section id="page-balancete" class="page">
-        <header>
-          <h1>Balanço Patrimonial</h1>
-        </header>
-        <div class="container">
-          <div class="toolbar">
-            <button id="btnGerarBalanco">Gerar Balanço</button>
-            <span style="margin-left: 1rem;">Data de Referência: <strong id="data-referencia"></strong></span>
-          </div>
-          <div id="balanco-container" class="balanco-container">
-            <div id="lado-ativo" class="balanco-lado">
-              <div class="balanco-header">ATIVO</div>
-            </div>
-            <div id="lado-passivo" class="balanco-lado">
-              <div class="balanco-header">PASSIVO</div>
-            </div>
-            <div id="lado-pl" class="balanco-lado">
-              <div class="balanco-header">PATRIMÔNIO LÍQUIDO</div>
-            </div>    
-            <div id="lado-rc" class="balanco-lado">
-              <div class="balanco-header">RECEITAS</div>
-            </div>   
-            <div id="lado-dp" class="balanco-lado">
-              <div class="balanco-header">DESPESAS</div>
-            </div>  
-          </div>
+      <div id="balanco-container" class="balanco-container">
+
+        <div id="lado-ativo" class="balanco-lado">
+            <div class="balanco-header">ATIVO</div>
         </div>
-      </section>
+
+        <div class="balanco-lado">
+            <div id="grupo-passivo-pl">
+                <div class="balanco-header">PASSIVO E PATRIMÔNIO LÍQUIDO</div>
+                <div id="conteudo-passivo-pl">
+                    </div>
+            </div>
+
+            <div id="grupo-resultado" style="margin-top: 1.5rem;">
+                <div class="balanco-header">CONTAS DE RESULTADO</div>
+                <div id="conteudo-resultado" class="resultado-container">
+                    <div id="lado-receitas">
+                        </div>
+                    <div id="lado-despesas">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
       <!-- LIVRO RAZÃO -->
       <section id="page-livro-razao" class="page">

@@ -227,26 +227,72 @@ app.post("/api/lancamentos", verificarToken, verificarMembro, async (req: Reques
 
 // --- ROTAS DE RELATÓRIOS ---
 
+// (Sua função groupBy deve estar definida antes desta rota)
+const groupBy = (array: any[], key: string) => {
+    return array.reduce((result, currentValue) => {
+      const groupKey = currentValue[key] || 'Sem Subgrupo';
+      if (!result[groupKey]) { result[groupKey] = []; }
+      result[groupKey].push(currentValue);
+      return result;
+    }, {});
+};
+
 app.get("/api/balanco-patrimonial", verificarToken, verificarMembro, async (req: Request, res: Response) => {
-    const empresaId = (req as any).empresaId;;
-    const contasSnap = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
-    const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
+    try {
+        const empresaId = (req as any).empresaId;
 
-    const contas = firebaseObjectToArray(contasSnap.val());
-    const lancamentos = firebaseObjectToArray(lancSnap.val());
+        // --- BUSCA DE DADOS (incluindo contas globais) ---
+        const snapshotEmpresa = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+        const snapshotGlobal = await db.ref("contas").orderByChild('dono_uid').equalTo('GLOBAL').once("value");
+        const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
 
-    const saldos = contas.map((conta: any) => {
-        const totalDebito = lancamentos.filter((l: any) => l.contaDebitoId === conta.id).reduce((s, l: any) => s + l.valor, 0);
-        const totalCredito = lancamentos.filter((l: any) => l.contaCreditoId === conta.id).reduce((s, l: any) => s + l.valor, 0);
-        return { ...conta, saldo: totalDebito - totalCredito };
-    }).filter((c: any) => c.saldo !== 0);
+        const contasDaEmpresa = firebaseObjectToArray(snapshotEmpresa.val());
+        const contasGlobais = firebaseObjectToArray(snapshotGlobal.val());
+        const contas = [...contasGlobais, ...contasDaEmpresa]; // Junta as contas
+        const lancamentos = firebaseObjectToArray(lancSnap.val());
 
-    const relatorio = {
-        ativo: { circulante: saldos.filter(c => c.subgrupo1 === "Ativo Circulante"), naoCirculante: saldos.filter(c => c.subgrupo1 === "Ativo Não Circulante") },
-        passivo: { circulante: saldos.filter(c => c.subgrupo1 === "Passivo Circulante"), naoCirculante: saldos.filter(c => c.subgrupo1 === "Passivo Não Circulante") },
-        patrimonioLiquido: saldos.filter(c => c.grupo_contabil === "Patrimônio Líquido"),
-    };
-    return res.status(200).json(relatorio);
+        // --- CÁLCULO DE SALDOS (sem alteração) ---
+        const saldos = contas.map((conta: any) => {
+            const totalDebito = lancamentos.filter((l: any) => l.contaDebitoId === conta.id).reduce((s, l: any) => s + l.valor, 0);
+            const totalCredito = lancamentos.filter((l: any) => l.contaCreditoId === conta.id).reduce((s, l: any) => s + l.valor, 0);
+            return { ...conta, saldo: totalDebito - totalCredito };
+        }).filter((c: any) => c.saldo !== 0);
+
+        // --- AGRUPAMENTO HIERÁRQUICO (COMPLETO) ---
+        const relatorioFinal = {
+            ativo: {},
+            passivo: {},
+            patrimonioLiquido: {},
+            receitas: {},
+            despesas: {}
+        };
+
+        // Agrupa Ativo
+        const ativoPorSubgrupo1 = groupBy(saldos.filter((c: any) => c.grupo_contabil === 'Ativo'), 'subgrupo1');
+        for (const subgrupo1 in ativoPorSubgrupo1) { (relatorioFinal.ativo as any)[subgrupo1] = groupBy(ativoPorSubgrupo1[subgrupo1], 'subgrupo2'); }
+
+        // Agrupa Passivo (LINHA QUE FALTAVA)
+        const passivoPorSubgrupo1 = groupBy(saldos.filter((c: any) => c.grupo_contabil === 'Passivo'), 'subgrupo1');
+        for (const subgrupo1 in passivoPorSubgrupo1) { (relatorioFinal.passivo as any)[subgrupo1] = groupBy(passivoPorSubgrupo1[subgrupo1], 'subgrupo2'); }
+
+        // Agrupa Patrimônio Líquido (LINHA QUE FALTAVA)
+        const plPorSubgrupo1 = groupBy(saldos.filter((c: any) => c.grupo_contabil === 'Patrimônio Líquido'), 'subgrupo1');
+        for (const subgrupo1 in plPorSubgrupo1) { (relatorioFinal.patrimonioLiquido as any)[subgrupo1] = groupBy(plPorSubgrupo1[subgrupo1], 'subgrupo2'); }
+
+        // Agrupa Receitas (como você já fez)
+        const receitasPorSubgrupo1 = groupBy(saldos.filter((c: any) => c.grupo_contabil === 'Receitas'), 'subgrupo1');
+        for (const subgrupo1 in receitasPorSubgrupo1) { (relatorioFinal.receitas as any)[subgrupo1] = groupBy(receitasPorSubgrupo1[subgrupo1], 'subgrupo2'); }
+
+        // Agrupa Despesas (como você já fez)
+        const despesasPorSubgrupo1 = groupBy(saldos.filter((c: any) => c.grupo_contabil === 'Despesas'), 'subgrupo1');
+        for (const subgrupo1 in despesasPorSubgrupo1) { (relatorioFinal.despesas as any)[subgrupo1] = groupBy(despesasPorSubgrupo1[subgrupo1], 'subgrupo2'); }
+        
+        return res.status(200).json(relatorioFinal);
+
+    } catch (error) {
+        console.error("Erro ao gerar balanço:", error);
+        return res.status(500).json({ message: "Erro interno no servidor ao gerar balanço." });
+    }
 });
 
 app.get("/api/livro-razao/:contaId", verificarToken, verificarMembro, async (req: Request, res: Response) => {

@@ -296,23 +296,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function gerarBalancoPatrimonial() {
     try {
-      const response = await fetchAutenticado('/balanco-patrimonial'); 
-      const relatorio = await response.json();
-      
-      // Chama a função auxiliar para desenhar o lado do ATIVO
-      const resultadoAtivo = renderizarGrupos(relatorio.ativo, 'Ativo');
-      ladoAtivoDiv.innerHTML = `<div class="balanco-header">ATIVO</div><div class="balanco-grupo">${resultadoAtivo.html}</div><div class="balanco-total"><span>TOTAL ATIVO</span><span>${resultadoAtivo.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
-      
-      // Chama a função auxiliar para desenhar o lado do PASSIVO e do PL
-      const resultadoPassivo = renderizarGrupos(relatorio.passivo, 'Passivo');
-      const resultadoPL = renderizarGrupos(relatorio.patrimonioLiquido, 'Patrimônio Líquido');
-      const totalPassivoPL = resultadoPassivo.total + resultadoPL.total;
-      ladoPassivoPlDiv.innerHTML = `<div class="balanco-header">PASSIVO E PATRIMÔNIO LÍQUIDO</div><div class="balanco-grupo">${resultadoPassivo.html}</div><div class="balanco-grupo">${resultadoPL.html}</div><div class="balanco-total"><span>TOTAL PASSIVO + PL</span><span>${totalPassivoPL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
-    
-    } catch (error) { 
-        console.error('Erro ao gerar Balanço Patrimonial:', error); 
+        const response = await fetchAutenticado('/balanco-patrimonial');
+        const relatorio = await response.json();
+
+        // --- Renderiza Lado do Ativo (sem mudanças) ---
+        const resultadoAtivo = renderizarGrupos(relatorio.ativo, 'Ativo');
+        const ladoAtivoDiv = document.getElementById('lado-ativo');
+        ladoAtivoDiv.innerHTML = `
+            <div class="balanco-header">ATIVO</div>
+            <div class="balanco-grupo">${resultadoAtivo.html}</div>
+            <div class="balanco-total">
+                <span>TOTAL ATIVO</span>
+                <span>${resultadoAtivo.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>`;
+
+        // --- Renderiza Lado Direito (agora com mais grupos) ---
+        const resultadoPassivo = renderizarGrupos(relatorio.passivo, 'Passivo');
+        const resultadoPL = renderizarGrupos(relatorio.patrimonioLiquido, 'Patrimônio Líquido');
+        const totalPassivoPL = resultadoPassivo.total + resultadoPL.total;
+        
+        const conteudoPassivoPlDiv = document.getElementById('conteudo-passivo-pl');
+        conteudoPassivoPlDiv.innerHTML = `
+            <div class="balanco-grupo">${resultadoPassivo.html}</div>
+            <div class="balanco-grupo">${resultadoPL.html}</div>
+            <div class="balanco-total">
+                <span>TOTAL PASSIVO + PL</span>
+                <span>${totalPassivoPL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>`;
+
+        // --- NOVO: Renderiza Receitas e Despesas ---
+        const resultadoReceitas = renderizarGrupos(relatorio.receitas, 'Receitas');
+        const ladoReceitasDiv = document.getElementById('lado-receitas');
+        ladoReceitasDiv.innerHTML = `
+            <div class="balanco-header">RECEITAS</div>
+            <div class="balanco-grupo">${resultadoReceitas.html}</div>
+            <div class="balanco-total">
+                <span>TOTAL RECEITAS</span>
+                <span>${resultadoReceitas.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>`;
+        
+        const resultadoDespesas = renderizarGrupos(relatorio.despesas, 'Despesas');
+        const ladoDespesasDiv = document.getElementById('lado-despesas');
+        ladoDespesasDiv.innerHTML = `
+            <div class="balanco-header">DESPESAS</div>
+            <div class="balanco-grupo">${resultadoDespesas.html}</div>
+            <div class="balanco-total">
+                <span>TOTAL DESPESAS</span>
+                <span>${resultadoDespesas.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>`;
+
+    } catch (error) {
+        console.error('Erro ao gerar Balanço Patrimonial:', error);
     }
-  }
+}
 
   function renderizarContas(contas, grupoPai) {
     let html = ''; let total = 0;
