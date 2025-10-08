@@ -35,6 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAdicionar = document.getElementById('btnAdicionarConta');
   const btnFecharModal = document.querySelector('.close-button');
   const formNovaConta = document.getElementById('form-nova-conta');
+  const btnEditarConta = document.getElementById('btnEditarConta');
+  const btnExcluirConta = document.getElementById('btnExcluirConta');
 
   const selectContaDebito = document.getElementById('conta-debito');
   const selectContaCredito = document.getElementById('conta-credito');
@@ -148,53 +150,79 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- CONTAS ---
   async function carregarContas() {
     try {
-      const response = await fetchAutenticado('/contas');
-      todasAsContas = await response.json();
-      tabelaContasCorpo.innerHTML = '';
-      todasAsContas.forEach(c => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${c.codigo}</td>
-          <td>${c.nome_conta}</td>
-          <td>${c.grupo_contabil}</td>
-          <td>${c.subgrupo1}</td>
-          <td>${c.subgrupo2}</td>
-        `;
-        tabelaContasCorpo.appendChild(tr);
-      });
-    } catch (e) {
-      console.error('Erro ao carregar contas:', e);
-    }
-  }
+        const response = await fetchAutenticado('/contas');
+        todasAsContas = await response.json();
+        tabelaContasCorpo.innerHTML = '';
 
-  formNovaConta.addEventListener('submit', async e => {
-    e.preventDefault();
-    const novaConta = {
+        todasAsContas.forEach(c => {
+            const tr = document.createElement('tr');
+            // Guardamos o ID da conta diretamente na linha da tabela
+            tr.dataset.contaId = c.id; 
+
+            tr.innerHTML = `<td>${c.codigo}</td><td>${c.nome_conta}</td><td>${c.grupo_contabil}</td><td>${c.subgrupo1}</td><td>${c.subgrupo2}</td>`;
+            
+            // Adiciona o evento de clique para selecionar a linha
+            tr.addEventListener('click', () => {
+                // Remove a seleção de qualquer outra linha
+                const linhaSelecionadaAnterior = document.querySelector('#tabela-contas-corpo tr.selecionada');
+                if (linhaSelecionadaAnterior) {
+                    linhaSelecionadaAnterior.classList.remove('selecionada');
+                }
+                // Adiciona a classe de seleção na linha clicada
+                tr.classList.add('selecionada');
+                // Habilita os botões de editar e excluir
+                btnEditarConta.disabled = false;
+                btnExcluirConta.disabled = false;
+            });
+
+            tabelaContasCorpo.appendChild(tr);
+        });
+    } catch (e) { console.error('Erro ao carregar contas:', e); }
+}
+
+formNovaConta.addEventListener('submit', async e => {
+  e.preventDefault();
+  const contaIdEdicao = document.getElementById('conta-id-edicao').value;
+
+  const dadosConta = {
       codigo: document.getElementById('codigo').value,
       nome_conta: document.getElementById('nome_conta').value,
       grupo_contabil: document.getElementById('grupo_contabil').value,
       subgrupo1: document.getElementById('subgrupo1').value,
       subgrupo2: document.getElementById('subgrupo2').value
-    };
+  };
 
-    try {
-      const response = await fetchAutenticado('/contas', { 
-        method: 'POST',
-        body: JSON.stringify(novaConta)
-      });
-      if (!response.ok) throw new Error('Erro ao criar conta');
-      const contaCriada = await response.json();
+  try {
+      let response;
+      if (contaIdEdicao) {
+          // Se tem um ID, estamos editando (método PUT)
+          response = await fetchAutenticado(`/contas/${contaIdEdicao}`, { 
+              method: 'PUT',
+              body: JSON.stringify(dadosConta)
+          });
+      } else {
+          // Se não tem ID, estamos adicionando (método POST)
+          response = await fetchAutenticado('/contas', { 
+              method: 'POST',
+              body: JSON.stringify(dadosConta)
+          });
+      }
 
-      todasAsContas.push(contaCriada);
+      if (!response.ok) throw new Error('Erro ao salvar a conta');
+
       formNovaConta.reset();
       toggleModal();
       await carregarContas();
       await popularDropdownsContas();
-    } catch (e) {
-      console.error('Erro ao criar conta:', e);
+      // Desabilita os botões após a ação
+      btnEditarConta.disabled = true;
+      btnExcluirConta.disabled = true;
+
+  } catch (e) {
+      console.error('Erro ao salvar conta:', e);
       alert('Não foi possível salvar a conta.');
-    }
-  });
+  }
+});
 
   // --- LANÇAMENTOS ---
   async function carregarLancamentos() {
@@ -435,6 +463,54 @@ document.addEventListener('DOMContentLoaded', () => {
             // O 'onAuthStateChanged' vai detectar o logout e fazer o redirecionamento
         });
     }
+
+    btnEditarConta.addEventListener('click', () => {
+      const linhaSelecionada = document.querySelector('#tabela-contas-corpo tr.selecionada');
+      if (!linhaSelecionada) {
+          alert('Por favor, selecione uma conta para editar.');
+          return;
+      }
+
+      const contaId = linhaSelecionada.dataset.contaId;
+      const contaParaEditar = todasAsContas.find(c => c.id === contaId);
+
+      if (contaParaEditar) {
+          // Preenche o modal com os dados da conta para edição
+          document.getElementById('modal-nova-conta').querySelector('h2').textContent = 'Editar Conta Contábil';
+          document.getElementById('conta-id-edicao').value = contaParaEditar.id;
+          document.getElementById('codigo').value = contaParaEditar.codigo;
+          document.getElementById('nome_conta').value = contaParaEditar.nome_conta;
+          document.getElementById('grupo_contabil').value = contaParaEditar.grupo_contabil;
+          document.getElementById('subgrupo1').value = contaParaEditar.subgrupo1;
+          document.getElementById('subgrupo2').value = contaParaEditar.subgrupo2;
+          toggleModal();
+      }
+  });
+
+  btnExcluirConta.addEventListener('click', async () => {
+      const linhaSelecionada = document.querySelector('#tabela-contas-corpo tr.selecionada');
+      if (!linhaSelecionada) {
+          alert('Por favor, selecione uma conta para excluir.');
+          return;
+      }
+      
+      const contaId = linhaSelecionada.dataset.contaId;
+      const contaParaExcluir = todasAsContas.find(c => c.id === contaId);
+
+      if (contaParaExcluir && confirm(`Tem certeza que deseja excluir a conta "${contaParaExcluir.nome_conta}"?`)) {
+          try {
+              await fetchAutenticado(`/contas/${contaId}`, { method: 'DELETE' });
+              await carregarContas();
+              await popularDropdownsContas();
+              btnEditarConta.disabled = true;
+              btnExcluirConta.disabled = true;
+          } catch (e) {
+              console.error("Erro ao excluir conta:", e);
+              alert("Não foi possível excluir a conta. Verifique se ela não está sendo usada em algum lançamento.");
+          }
+      }
+  });
+
     
     await carregarContas();
     await popularDropdownsContas();

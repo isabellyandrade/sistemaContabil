@@ -60,6 +60,8 @@
                 <header><h1>Setup de Contas Contábeis</h1></header>
                 <div class="container">
                   <div class="toolbar"><button id="btnAdicionarConta">Adicionar Nova Conta</button></div>
+                  <button id="btnEditarConta" class="btn-secundario" disabled>Editar Conta</button>
+                  <button id="btnExcluirConta" class="btn-perigo" disabled>Excluir Conta</button>
                   <table>
                     <thead><tr><th>Código</th><th>Nome da Conta</th><th>Grupo Contábil</th><th>Subgrupo 1</th><th>Subgrupo 2</th></tr></thead>
                     <tbody id="tabela-contas-corpo"></tbody>
@@ -142,6 +144,7 @@
             <span class="close-button">&times;</span>
             <h2>Adicionar Nova Conta</h2>
             <form id="form-nova-conta">
+              <input type="hidden" id="conta-id-edicao">
               <label for="codigo">Código:</label><input type="text" id="codigo" required>
               <label for="nome_conta">Nome da Conta:</label><input type="text" id="nome_conta" required>
               <label for="grupo_contabil">Grupo Contábil:</label>

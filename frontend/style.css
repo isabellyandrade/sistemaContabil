@@ -194,3 +194,14 @@ tfoot {
     height: auto;
     padding: 5px 0; /* Um pouco de espaço em cima e embaixo */
 }
+
+.btn-secundario { background-color: #7f8c8d; }
+.btn-secundario:hover { background-color: #95a5a6; }
+.btn-perigo { background-color: #e74c3c; }
+.btn-perigo:hover { background-color: #c0392b; }
+
+/* Estilo para a linha da tabela quando for selecionada */
+#tabela-contas-corpo tr.selecionada {
+    background-color: #eaf2f8 !important; /* Cor de destaque */
+    font-weight: bold;
+}

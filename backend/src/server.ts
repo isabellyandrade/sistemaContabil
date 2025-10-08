@@ -192,6 +192,60 @@ app.post("/api/contas", verificarToken, verificarMembro, async (req: Request, re
   res.status(201).json({ id: ref.key, ...novaConta });
 });
 
+app.delete("/api/contas/:contaId", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    const empresaId = (req as any).empresaId;
+    const { contaId } = req.params;
+
+    try {
+        // Primeiro, verificamos se a conta realmente pertence a esta empresa para segurança extra.
+        const snapshotConta = await db.ref(`contas/${contaId}`).once('value');
+        if (!snapshotConta.exists() || snapshotConta.val().empresa_id !== empresaId) {
+            return res.status(404).json({ message: "Conta não encontrada ou não pertence a esta empresa." });
+        }
+        
+        // Impede a exclusão de contas globais
+        if (snapshotConta.val().dono_uid === 'GLOBAL') {
+            return res.status(403).json({ message: "Contas padrão não podem ser excluídas." });
+        }
+
+        // Exclui a conta do banco de dados
+        await db.ref(`contas/${contaId}`).remove();
+        
+        res.status(200).json({ message: "Conta excluída com sucesso." });
+
+    } catch (error) {
+        console.error("Erro ao excluir conta:", error);
+        res.status(500).json({ message: "Erro interno ao excluir a conta." });
+    }
+});
+
+app.put("/api/contas/:contaId", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    const empresaId = (req as any).empresaId;
+    const { contaId } = req.params;
+    const dadosAtualizados = req.body;
+
+    try {
+        const contaRef = db.ref(`contas/${contaId}`);
+        const snapshotConta = await contaRef.once('value');
+        if (!snapshotConta.exists() || snapshotConta.val().empresa_id !== empresaId) {
+            return res.status(404).json({ message: "Conta não encontrada ou não pertence a esta empresa." });
+        }
+
+        if (snapshotConta.val().dono_uid === 'GLOBAL') {
+            return res.status(403).json({ message: "Contas padrão não podem ser editadas." });
+        }
+        
+        // Atualiza a conta no banco de dados com os novos dados
+        await contaRef.update(dadosAtualizados);
+
+        res.status(200).json({ id: contaId, ...dadosAtualizados });
+
+    } catch (error) {
+        console.error("Erro ao editar conta:", error);
+        res.status(500).json({ message: "Erro interno ao editar a conta." });
+    }
+});
+
 // --- ROTAS LANÇAMENTOS ---
 app.get("/api/lancamentos", verificarToken, verificarMembro, async (req: Request, res: Response) => {
     const empresaId = (req as any).empresaId;;
