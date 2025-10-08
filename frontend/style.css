@@ -202,6 +202,6 @@ tfoot {
 
 /* Estilo para a linha da tabela quando for selecionada */
 #tabela-contas-corpo tr.selecionada {
-    background-color: #eaf2f8 !important; /* Cor de destaque */
+    background-color: #61b9fc !important; /* Cor de destaque */
     font-weight: bold;
 }
