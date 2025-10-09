@@ -73,7 +73,6 @@
                 <header><h1>Livro Diário - Lançamentos</h1></header>
                 <div class="container">
                   <form id="form-novo-lancamento" class="form-lancamento">
-                    <input type="hidden" id="lancamento-id-edicao">
                     <div class="form-grid">
                       <div><label for="conta-debito">Conta Débito:</label><select id="conta-debito" required></select></div>
                       <div><label for="conta-credito">Conta Crédito:</label><select id="conta-credito" required></select></div>
@@ -82,12 +81,7 @@
                     <label for="historico">Histórico (Descrição):</label><textarea id="historico" rows="3" required></textarea>
                     <button type="submit">Salvar Lançamento</button>
                   </form>
-                  <hr style="margin: 2rem 0;">
-                  <h3>Lançamentos Registrados</h3>
-                  <div class="toolbar">
-                    <button id="btnEditarLancamento" class="btn-secundario" disabled>Editar Lançamento</button>
-                    <button id="btnExcluirLancamento" class="btn-perigo" disabled>Excluir Lançamento</button>
-                </div>
+                  <hr style="margin: 2rem 0;"><h3>Lançamentos Registrados</h3>
                   <table>
                     <thead><tr><th>Data</th><th>Histórico</th><th>Conta Débito</th><th>Conta Crédito</th><th>Valor (R$)</th></tr></thead>
                     <tbody id="tabela-lancamentos-corpo"></tbody>

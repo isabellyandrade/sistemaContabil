@@ -205,8 +205,3 @@ tfoot {
     background-color: #61b9fc !important; /* Cor de destaque */
     font-weight: bold;
 }
-/* Estilo para a linha da tabela de lançamentos quando selecionada */
-#tabela-lancamentos-corpo tr.selecionada {
-  background-color: #61b9fc !important; /* Cor de destaque azul claro */
-  font-weight: bold;
-}
