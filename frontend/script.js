@@ -3,51 +3,65 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- PORTEIRO DE AUTENTICAÇÃO ---
+  // --- PORTEIRO DE AUTENTICAÇÃO ---
+  // verifica se há um usuário logado.
     onAuthStateChanged(auth, (user) => {
         if (user) {
+            // Se o usuário está logado, o app continua e chama a função principal.
+            console.log("Acesso permitido para:", user.displayName);
             document.getElementById('nome-usuario').textContent = user.displayName;
-            carregarMinhasEmpresas();
+            carregarMinhasEmpresas(); // <--- Inicia o aplicativo de verdade
         } else {
+            // Se não há usuário, redireciona para a tela de login.
+            console.log("Acesso negado. Redirecionando para login...");
             window.location.href = 'login.html';
         }
     });
 
-    const API_URL = 'https://sistema-contabilisa.onrender.com/api';
+    const API_URL = 'https://sistema-contabilisa.onrender.com/api'; 
     let todasAsContas = [];
-    let todosOsLancamentos = [];
 
-    // --- SELEÇÃO ÚNICA E ORGANIZADA DE TODOS OS ELEMENTOS DO DOM ---
-    const telaEmpresas = document.getElementById('tela-empresas');
-    const appPrincipal = document.getElementById('app-principal');
-    const listaEmpresasDiv = document.getElementById('lista-empresas');
-    const formNovaEmpresa = document.getElementById('form-nova-empresa');
-    const formConvidarMembro = document.getElementById('form-convidar-membro');
-    const tabelaContasCorpo = document.getElementById('tabela-contas-corpo');
-    const modal = document.getElementById('modal-nova-conta');
-    const btnAdicionar = document.getElementById('btnAdicionarConta');
-    const btnFecharModal = document.querySelector('.close-button');
-    const formNovaConta = document.getElementById('form-nova-conta');
-    const btnEditarConta = document.getElementById('btnEditarConta');
-    const btnExcluirConta = document.getElementById('btnExcluirConta');
-    const selectContaDebito = document.getElementById('conta-debito');
-    const selectContaCredito = document.getElementById('conta-credito');
-    const filtroContaRazao = document.getElementById('filtro-conta-razao');
-    const btnGerarRazao = document.getElementById('btnGerarRazao');
-    const btnGerarBalanco = document.getElementById('btnGerarBalanco');
-    const ladoAtivoDiv = document.getElementById('lado-ativo');
-    const ladoPassivoPlDiv = document.getElementById('lado-passivo-pl');
-    const dataReferenciaElement = document.getElementById('data-referencia');
-    const resultadoRazaoDiv = document.getElementById('resultado-razao');
-    const nomeContaRazaoH2 = document.getElementById('nome-conta-razao');
-    const tabelaRazaoCorpo = document.getElementById('tabela-razao-corpo');
-    const tabelaRazaoRodape = document.getElementById('tabela-razao-rodape');
-    const formNovoLancamento = document.getElementById('form-novo-lancamento');
-    const tabelaLancamentosCorpo = document.getElementById('tabela-lancamentos-corpo');
-    const btnEditarLancamento = document.getElementById('btnEditarLancamento');
-    const btnExcluirLancamento = document.getElementById('btnExcluirLancamento');
-    const menuItems = document.querySelectorAll('.menu li');
-    const pages = document.querySelectorAll('.page');
+  const formConvidarMembro = document.getElementById('form-convidar-membro');
+
+  // --- NOVOS ELEMENTOS DA TELA DE EMPRESAS ---
+  const telaEmpresas = document.getElementById('tela-empresas');
+  const appPrincipal = document.getElementById('app-principal');
+  const listaEmpresasDiv = document.getElementById('lista-empresas');
+  const formNovaEmpresa = document.getElementById('form-nova-empresa');
+
+  // --- ELEMENTOS PRINCIPAIS ---
+  const tabelaContasCorpo = document.getElementById('tabela-contas-corpo');
+  const modal = document.getElementById('modal-nova-conta');
+  const btnAdicionar = document.getElementById('btnAdicionarConta');
+  const btnFecharModal = document.querySelector('.close-button');
+  const formNovaConta = document.getElementById('form-nova-conta');
+  const btnEditarConta = document.getElementById('btnEditarConta');
+  const btnExcluirConta = document.getElementById('btnExcluirConta');
+
+  const selectContaDebito = document.getElementById('conta-debito');
+  const selectContaCredito = document.getElementById('conta-credito');
+  const filtroContaRazao = document.getElementById('filtro-conta-razao');
+  const btnGerarRazao = document.getElementById('btnGerarRazao');
+  const btnGerarBalanco = document.getElementById('btnGerarBalanco');
+
+  // --- ELEMENTOS DO Balanço Patrimonial ---
+  const ladoAtivoDiv = document.getElementById('lado-ativo');
+  const ladoPassivoPlDiv = document.getElementById('lado-passivo-pl');
+  const dataReferenciaElement = document.getElementById('data-referencia');
+
+  // --- ELEMENTOS DO Livro Razão ---
+  const resultadoRazaoDiv = document.getElementById('resultado-razao');
+  const nomeContaRazaoH2 = document.getElementById('nome-conta-razao');
+  const tabelaRazaoCorpo = document.getElementById('tabela-razao-corpo');
+  const tabelaRazaoRodape = document.getElementById('tabela-razao-rodape');
+
+  // --- ELEMENTOS: Livro Diário ---
+  const formNovoLancamento = document.getElementById('form-novo-lancamento');
+  const tabelaLancamentosCorpo = document.getElementById('tabela-lancamentos-corpo');
+
+  // --- NAVEGAÇÃO ---
+  const menuItems = document.querySelectorAll('.menu li');
+  const pages = document.querySelectorAll('.page');
 
   // --- FUNÇÃO AUXILIAR PARA FETCH COM AUTENTICAÇÃO ---
   async function fetchAutenticado(endpoint, options = {}) {
@@ -100,6 +114,19 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (error) { console.error("Erro ao carregar empresas:", error); }
   }
 
+  formNovaEmpresa.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nomeEmpresaInput = document.getElementById('nome-nova-empresa');
+      const nomeEmpresa = nomeEmpresaInput.value;
+      if (!nomeEmpresa) return;
+
+      try {
+          await fetchAutenticado('/empresas', { method: 'POST', body: JSON.stringify({ nomeEmpresa }) });
+          nomeEmpresaInput.value = '';
+          carregarMinhasEmpresas();
+      } catch (error) { console.error("Erro ao criar empresa:", error); alert('Falha ao criar empresa.'); }
+  });
+
   function selecionarEmpresa(empresaId, nomeEmpresa) {
       localStorage.setItem('empresa_id_selecionada', empresaId);
 
@@ -151,40 +178,98 @@ document.addEventListener('DOMContentLoaded', () => {
             tabelaContasCorpo.appendChild(tr);
         });
     } catch (e) { console.error('Erro ao carregar contas:', e); }
+}
+
+formNovaConta.addEventListener('submit', async e => {
+  e.preventDefault();
+  const contaIdEdicao = document.getElementById('conta-id-edicao').value;
+
+  const dadosConta = {
+      codigo: document.getElementById('codigo').value,
+      nome_conta: document.getElementById('nome_conta').value,
+      grupo_contabil: document.getElementById('grupo_contabil').value,
+      subgrupo1: document.getElementById('subgrupo1').value,
+      subgrupo2: document.getElementById('subgrupo2').value
+  };
+
+  try {
+      let response;
+      if (contaIdEdicao) {
+          // Se tem um ID, estamos editando (método PUT)
+          response = await fetchAutenticado(`/contas/${contaIdEdicao}`, { 
+              method: 'PUT',
+              body: JSON.stringify(dadosConta)
+          });
+      } else {
+          // Se não tem ID, estamos adicionando (método POST)
+          response = await fetchAutenticado('/contas', { 
+              method: 'POST',
+              body: JSON.stringify(dadosConta)
+          });
+      }
+
+      if (!response.ok) throw new Error('Erro ao salvar a conta');
+
+      formNovaConta.reset();
+      toggleModal();
+      await carregarContas();
+      await popularDropdownsContas();
+      // Desabilita os botões após a ação
+      btnEditarConta.disabled = true;
+      btnExcluirConta.disabled = true;
+
+  } catch (e) {
+      console.error('Erro ao salvar conta:', e);
+      alert('Não foi possível salvar a conta.');
   }
+});
 
   // --- LANÇAMENTOS ---
   async function carregarLancamentos() {
     try {
-        const response = await fetchAutenticado('/lancamentos');
-        todosOsLancamentos = await response.json(); // Salva os lançamentos
-        tabelaLancamentosCorpo.innerHTML = '';
+      const response = await fetchAutenticado('/lancamentos');
+      const lancamentos = await response.json();
+      tabelaLancamentosCorpo.innerHTML = '';
 
-        todosOsLancamentos.forEach(l => {
-            const tr = document.createElement('tr');
-            tr.dataset.lancamentoId = l.id; // Guarda o ID na linha da tabela
-
-            tr.innerHTML = `
-                <td>${l.data}</td>
-                <td>${l.historico}</td>
-                <td>${l.nomeContaDebito}</td>
-                <td>${l.nomeContaCredito}</td>
-                <td>${l.valor.toFixed(2)}</td>
-            `;
-
-            tr.addEventListener('click', () => {
-                document.querySelectorAll('#tabela-lancamentos-corpo tr.selecionada').forEach(row => row.classList.remove('selecionada'));
-                tr.classList.add('selecionada');
-                btnEditarLancamento.disabled = false;
-                btnExcluirLancamento.disabled = false;
-            });
-
-            tabelaLancamentosCorpo.appendChild(tr);
-        });
+      lancamentos.forEach(l => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${l.data}</td>
+          <td>${l.historico}</td>
+          <td>${l.nomeContaDebito}</td>
+          <td>${l.nomeContaCredito}</td>
+          <td>${l.valor.toFixed(2)}</td>
+        `;
+        tabelaLancamentosCorpo.appendChild(tr);
+      });
     } catch (e) {
-        console.error('Erro ao carregar lançamentos:', e);
+      console.error('Erro ao carregar lançamentos:', e);
     }
   }
+
+  formNovoLancamento.addEventListener('submit', async e => {
+    e.preventDefault();
+    const novoLancamento = {
+      contaDebitoId: document.getElementById('conta-debito').value,
+      contaCreditoId: document.getElementById('conta-credito').value,
+      valor: document.getElementById('valor').value,
+      historico: document.getElementById('historico').value
+    };
+
+    try {
+      const response = await fetchAutenticado('/lancamentos', {
+        method: 'POST',
+        body: JSON.stringify(novoLancamento)
+      });
+      if (!response.ok) throw new Error('Erro ao salvar lançamento');
+
+      formNovoLancamento.reset();
+      await carregarLancamentos();
+    } catch (e) {
+      console.error('Erro ao salvar lançamento:', e);
+      alert('Não foi possível salvar o lançamento.');
+    }
+  });
 
   async function gerarLivroRazao() {
     const contaId = filtroContaRazao.value;
@@ -291,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
         console.error('Erro ao gerar Balanço Patrimonial:', error);
     }
-  }
+}
 
   function renderizarContas(contas, grupoPai) {
     let html = ''; let total = 0;
@@ -339,103 +424,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  formNovaEmpresa.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const nomeEmpresaInput = document.getElementById('nome-nova-empresa');
-    const nomeEmpresa = nomeEmpresaInput.value;
-    if (!nomeEmpresa) return;
-    try {
-        await fetchAutenticado('/empresas', { method: 'POST', body: JSON.stringify({ nomeEmpresa }) });
-        nomeEmpresaInput.value = '';
-        carregarMinhasEmpresas();
-    } catch (error) { console.error("Erro ao criar empresa:", error); alert('Falha ao criar empresa.'); }
-  });
-
 
   // --- INICIALIZAÇÃO DO APLICATIVO ---
   async function inicializarApp() {
-      // Conexões de Navegação e Modais
       menuItems.forEach(item => item.addEventListener('click', () => showPage(item.dataset.page)));
       btnAdicionar.addEventListener('click', toggleModal);
       btnFecharModal.addEventListener('click', toggleModal);
-
-      // Conexão dos Formulários
-      formNovaConta.addEventListener('submit', async e => {
-        e.preventDefault();
-        const contaIdEdicao = document.getElementById('conta-id-edicao').value;
+      btnGerarBalanco.addEventListener('click', gerarBalancoPatrimonial);
+      btnGerarRazao.addEventListener('click', gerarLivroRazao);
       
-        const dadosConta = {
-            codigo: document.getElementById('codigo').value,
-            nome_conta: document.getElementById('nome_conta').value,
-            grupo_contabil: document.getElementById('grupo_contabil').value,
-            subgrupo1: document.getElementById('subgrupo1').value,
-            subgrupo2: document.getElementById('subgrupo2').value
-        };
-      
-        try {
-            let response;
-            if (contaIdEdicao) {
-                // Se tem um ID, estamos editando (método PUT)
-                response = await fetchAutenticado(`/contas/${contaIdEdicao}`, { 
-                    method: 'PUT',
-                    body: JSON.stringify(dadosConta)
-                });
-            } else {
-                // Se não tem ID, estamos adicionando (método POST)
-                response = await fetchAutenticado('/contas', { 
-                    method: 'POST',
-                    body: JSON.stringify(dadosConta)
-                });
-            }
-      
-            if (!response.ok) throw new Error('Erro ao salvar a conta');
-      
-            formNovaConta.reset();
-            toggleModal();
-            await carregarContas();
-            await popularDropdownsContas();
-            // Desabilita os botões após a ação
-            btnEditarConta.disabled = true;
-            btnExcluirConta.disabled = true;
-      
-        } catch (e) {
-            console.error('Erro ao salvar conta:', e);
-            alert('Não foi possível salvar a conta.');
-        }
-      });
-
-      formNovoLancamento.addEventListener('submit', async e => {
-        e.preventDefault();
-        const lancamentoIdEdicao = document.getElementById('lancamento-id-edicao').value;
-      
-        const dadosLancamento = {
-            contaDebitoId: document.getElementById('conta-debito').value,
-            contaCreditoId: document.getElementById('conta-credito').value,
-            valor: document.getElementById('valor').value,
-            historico: document.getElementById('historico').value
-        };
-      
-        const endpoint = lancamentoIdEdicao ? `/lancamentos/${lancamentoIdEdicao}` : '/lancamentos';
-        const method = lancamentoIdEdicao ? 'PUT' : 'POST';
-      
-        try {
-            await fetchAutenticado(endpoint, {
-                method: method,
-                body: JSON.stringify(dadosLancamento)
-            });
-      
-            formNovoLancamento.reset();
-            document.getElementById('lancamento-id-edicao').value = ''; // Limpa o ID de edição
-            await carregarLancamentos();
-            btnEditarLancamento.disabled = true;
-            btnExcluirLancamento.disabled = true;
-      
-        } catch (e) {
-            console.error('Erro ao salvar lançamento:', e);
-            alert('Não foi possível salvar o lançamento.');
-        }
-      });
-
       if (formConvidarMembro) {
         formConvidarMembro.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -458,7 +455,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Conexão dos Botões de Ação (Setup de Contas)
+    // Lógica para o botão de logout
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            signOut(auth).catch(error => console.error("Erro no logout:", error));
+            // O 'onAuthStateChanged' vai detectar o logout e fazer o redirecionamento
+        });
+    }
+
     btnEditarConta.addEventListener('click', () => {
       const linhaSelecionada = document.querySelector('#tabela-contas-corpo tr.selecionada');
       if (!linhaSelecionada) {
@@ -480,9 +485,9 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('subgrupo2').value = contaParaEditar.subgrupo2;
           toggleModal();
       }
-    });
+  });
 
-    btnExcluirConta.addEventListener('click', async () => {
+  btnExcluirConta.addEventListener('click', async () => {
       const linhaSelecionada = document.querySelector('#tabela-contas-corpo tr.selecionada');
       if (!linhaSelecionada) {
           alert('Por favor, selecione uma conta para excluir.');
@@ -504,59 +509,8 @@ document.addEventListener('DOMContentLoaded', () => {
               alert("Não foi possível excluir a conta. Verifique se ela não está sendo usada em algum lançamento.");
           }
       }
-    });
+  });
 
-    btnEditarLancamento.addEventListener('click', () => {
-      const linhaSelecionada = document.querySelector('#tabela-lancamentos-corpo tr.selecionada');
-      if (!linhaSelecionada) return;
-
-      const lancamentoId = linhaSelecionada.dataset.lancamentoId;
-      const lancamentoParaEditar = todosOsLancamentos.find(l => l.id === lancamentoId);
-
-      if (lancamentoParaEditar) {
-          // Preenche o formulário com os dados do lançamento para edição
-          document.getElementById('lancamento-id-edicao').value = lancamentoParaEditar.id;
-          document.getElementById('conta-debito').value = lancamentoParaEditar.contaDebitoId;
-          document.getElementById('conta-credito').value = lancamentoParaEditar.contaCreditoId;
-          document.getElementById('valor').value = lancamentoParaEditar.valor;
-          document.getElementById('historico').value = lancamentoParaEditar.historico;
-
-          window.scrollTo(0, 0); // Rola a página para o topo, onde está o formulário
-      }
-    });
-
-    btnExcluirLancamento.addEventListener('click', async () => {
-      const linhaSelecionada = document.querySelector('#tabela-lancamentos-corpo tr.selecionada');
-      if (!linhaSelecionada) return;
-
-      const lancamentoId = linhaSelecionada.dataset.lancamentoId;
-      const lancamentoParaExcluir = todosOsLancamentos.find(l => l.id === lancamentoId);
-
-      if (lancamentoParaExcluir && confirm(`Tem certeza que deseja excluir o lançamento: "${lancamentoParaExcluir.historico}"?`)) {
-          try {
-              await fetchAutenticado(`/lancamentos/${lancamentoId}`, { method: 'DELETE' });
-              await carregarLancamentos();
-              btnEditarLancamento.disabled = true;
-              btnExcluirLancamento.disabled = true;
-          } catch (e) {
-              console.error("Erro ao excluir lançamento:", e);
-              alert("Não foi possível excluir o lançamento.");
-          }
-      }
-    });
-
-    // Conexão dos Botões de Relatório
-    btnGerarBalanco.addEventListener('click', gerarBalancoPatrimonial);
-    btnGerarRazao.addEventListener('click', gerarLivroRazao);
-      
-    // Lógica para o botão de logout
-    const btnLogout = document.getElementById('btn-logout');
-    if (btnLogout) {
-        btnLogout.addEventListener('click', () => {
-            signOut(auth).catch(error => console.error("Erro no logout:", error));
-            // O 'onAuthStateChanged' vai detectar o logout e fazer o redirecionamento
-        });
-    }
     
     await carregarContas();
     await popularDropdownsContas();
@@ -569,8 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 });
-
-
 
 
   
