@@ -33,6 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabelaContasCorpo = document.getElementById('tabela-contas-corpo');
   const modal = document.getElementById('modal-nova-conta');
   const btnAdicionar = document.getElementById('btnAdicionarConta');
+  const btnEditarLancamento = document.getElementById('btnEditarLancamento');
+  const btnExcluirLancamento = document.getElementById('btnExcluirLancamento');
+  let todosOsLancamentos = []; // Adicione esta para guardar os lançamentos
   const btnFecharModal = document.querySelector('.close-button');
   const formNovaConta = document.getElementById('form-nova-conta');
   const btnEditarConta = document.getElementById('btnEditarConta');
@@ -227,49 +230,67 @@ formNovaConta.addEventListener('submit', async e => {
   // --- LANÇAMENTOS ---
   async function carregarLancamentos() {
     try {
-      const response = await fetchAutenticado('/lancamentos');
-      const lancamentos = await response.json();
-      tabelaLancamentosCorpo.innerHTML = '';
+        const response = await fetchAutenticado('/lancamentos');
+        todosOsLancamentos = await response.json(); // Salva os lançamentos
+        tabelaLancamentosCorpo.innerHTML = '';
 
-      lancamentos.forEach(l => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${l.data}</td>
-          <td>${l.historico}</td>
-          <td>${l.nomeContaDebito}</td>
-          <td>${l.nomeContaCredito}</td>
-          <td>${l.valor.toFixed(2)}</td>
-        `;
-        tabelaLancamentosCorpo.appendChild(tr);
-      });
+        todosOsLancamentos.forEach(l => {
+            const tr = document.createElement('tr');
+            tr.dataset.lancamentoId = l.id; // Guarda o ID na linha da tabela
+
+            tr.innerHTML = `
+                <td>${l.data}</td>
+                <td>${l.historico}</td>
+                <td>${l.nomeContaDebito}</td>
+                <td>${l.nomeContaCredito}</td>
+                <td>${l.valor.toFixed(2)}</td>
+            `;
+
+            tr.addEventListener('click', () => {
+                document.querySelectorAll('#tabela-lancamentos-corpo tr.selecionada').forEach(row => row.classList.remove('selecionada'));
+                tr.classList.add('selecionada');
+                btnEditarLancamento.disabled = false;
+                btnExcluirLancamento.disabled = false;
+            });
+
+            tabelaLancamentosCorpo.appendChild(tr);
+        });
     } catch (e) {
-      console.error('Erro ao carregar lançamentos:', e);
+        console.error('Erro ao carregar lançamentos:', e);
     }
-  }
+}
 
-  formNovoLancamento.addEventListener('submit', async e => {
-    e.preventDefault();
-    const novoLancamento = {
+formNovoLancamento.addEventListener('submit', async e => {
+  e.preventDefault();
+  const lancamentoIdEdicao = document.getElementById('lancamento-id-edicao').value;
+
+  const dadosLancamento = {
       contaDebitoId: document.getElementById('conta-debito').value,
       contaCreditoId: document.getElementById('conta-credito').value,
       valor: document.getElementById('valor').value,
       historico: document.getElementById('historico').value
-    };
+  };
 
-    try {
-      const response = await fetchAutenticado('/lancamentos', {
-        method: 'POST',
-        body: JSON.stringify(novoLancamento)
+  const endpoint = lancamentoIdEdicao ? `/lancamentos/${lancamentoIdEdicao}` : '/lancamentos';
+  const method = lancamentoIdEdicao ? 'PUT' : 'POST';
+
+  try {
+      await fetchAutenticado(endpoint, {
+          method: method,
+          body: JSON.stringify(dadosLancamento)
       });
-      if (!response.ok) throw new Error('Erro ao salvar lançamento');
 
       formNovoLancamento.reset();
+      document.getElementById('lancamento-id-edicao').value = ''; // Limpa o ID de edição
       await carregarLancamentos();
-    } catch (e) {
+      btnEditarLancamento.disabled = true;
+      btnExcluirLancamento.disabled = true;
+
+  } catch (e) {
       console.error('Erro ao salvar lançamento:', e);
       alert('Não foi possível salvar o lançamento.');
-    }
-  });
+  }
+});
 
   async function gerarLivroRazao() {
     const contaId = filtroContaRazao.value;
@@ -511,6 +532,44 @@ formNovaConta.addEventListener('submit', async e => {
       }
   });
 
+  btnEditarLancamento.addEventListener('click', () => {
+    const linhaSelecionada = document.querySelector('#tabela-lancamentos-corpo tr.selecionada');
+    if (!linhaSelecionada) return;
+
+    const lancamentoId = linhaSelecionada.dataset.lancamentoId;
+    const lancamentoParaEditar = todosOsLancamentos.find(l => l.id === lancamentoId);
+
+    if (lancamentoParaEditar) {
+        // Preenche o formulário com os dados do lançamento para edição
+        document.getElementById('lancamento-id-edicao').value = lancamentoParaEditar.id;
+        document.getElementById('conta-debito').value = lancamentoParaEditar.contaDebitoId;
+        document.getElementById('conta-credito').value = lancamentoParaEditar.contaCreditoId;
+        document.getElementById('valor').value = lancamentoParaEditar.valor;
+        document.getElementById('historico').value = lancamentoParaEditar.historico;
+
+        window.scrollTo(0, 0); // Rola a página para o topo, onde está o formulário
+    }
+});
+
+btnExcluirLancamento.addEventListener('click', async () => {
+    const linhaSelecionada = document.querySelector('#tabela-lancamentos-corpo tr.selecionada');
+    if (!linhaSelecionada) return;
+
+    const lancamentoId = linhaSelecionada.dataset.lancamentoId;
+    const lancamentoParaExcluir = todosOsLancamentos.find(l => l.id === lancamentoId);
+
+    if (lancamentoParaExcluir && confirm(`Tem certeza que deseja excluir o lançamento: "${lancamentoParaExcluir.historico}"?`)) {
+        try {
+            await fetchAutenticado(`/lancamentos/${lancamentoId}`, { method: 'DELETE' });
+            await carregarLancamentos();
+            btnEditarLancamento.disabled = true;
+            btnExcluirLancamento.disabled = true;
+        } catch (e) {
+            console.error("Erro ao excluir lançamento:", e);
+            alert("Não foi possível excluir o lançamento.");
+        }
+    }
+});
     
     await carregarContas();
     await popularDropdownsContas();

@@ -279,6 +279,54 @@ app.post("/api/lancamentos", verificarToken, verificarMembro, async (req: Reques
     res.status(201).json({ id: ref.key, ...novoLancamento });
 });
 
+// Rota para EXCLUIR um lançamento
+app.delete("/api/lancamentos/:lancamentoId", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    const empresaId = (req as any).empresaId;
+    const { lancamentoId } = req.params;
+
+    try {
+        const lancRef = db.ref(`lancamentos/${lancamentoId}`);
+        const snapshot = await lancRef.once('value');
+        
+        if (!snapshot.exists() || snapshot.val().empresa_id !== empresaId) {
+            return res.status(404).json({ message: "Lançamento não encontrado ou não pertence a esta empresa." });
+        }
+
+        await lancRef.remove();
+        res.status(200).json({ message: "Lançamento excluído com sucesso." });
+
+    } catch (error) {
+        console.error("Erro ao excluir lançamento:", error);
+        res.status(500).json({ message: "Erro interno ao excluir o lançamento." });
+    }
+});
+
+// Rota para EDITAR um lançamento
+app.put("/api/lancamentos/:lancamentoId", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    const empresaId = (req as any).empresaId;
+    const { lancamentoId } = req.params;
+    const dadosAtualizados = req.body;
+
+    try {
+        const lancRef = db.ref(`lancamentos/${lancamentoId}`);
+        const snapshot = await lancRef.once('value');
+
+        if (!snapshot.exists() || snapshot.val().empresa_id !== empresaId) {
+            return res.status(404).json({ message: "Lançamento não encontrado ou não pertence a esta empresa." });
+        }
+        
+        // Atualiza o lançamento com os novos dados
+        await lancRef.update(dadosAtualizados);
+        const snapshotAtualizado = await lancRef.once('value');
+
+        res.status(200).json({ id: lancamentoId, ...snapshotAtualizado.val() });
+
+    } catch (error) {
+        console.error("Erro ao editar lançamento:", error);
+        res.status(500).json({ message: "Erro interno ao editar o lançamento." });
+    }
+});
+
 // --- ROTAS DE RELATÓRIOS ---
 
 // (Sua função groupBy deve estar definida antes desta rota)
