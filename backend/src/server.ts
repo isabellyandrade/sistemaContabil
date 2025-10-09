@@ -247,19 +247,33 @@ app.put("/api/contas/:contaId", verificarToken, verificarMembro, async (req: Req
 });
 
 // --- ROTAS LANÇAMENTOS ---
+// --- ROTAS LANÇAMENTOS ---
 app.get("/api/lancamentos", verificarToken, verificarMembro, async (req: Request, res: Response) => {
-    const empresaId = (req as any).empresaId;;
-    const contasSnap = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+    const empresaId = (req as any).empresaId;
+
+    // --- INÍCIO DA CORREÇÃO ---
+
+    // 1. Busca tanto as contas da empresa quanto as contas globais
+    const snapshotEmpresa = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+    const snapshotGlobal = await db.ref("contas").orderByChild('dono_uid').equalTo('GLOBAL').once("value");
     const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
 
-    const contas = firebaseObjectToArray(contasSnap.val());
+    const contasDaEmpresa = firebaseObjectToArray(snapshotEmpresa.val());
+    const contasGlobais = firebaseObjectToArray(snapshotGlobal.val());
+    
+    // 2. Junta as duas listas de contas em uma só, criando uma lista completa
+    const todasAsContas = [...contasGlobais, ...contasDaEmpresa]; 
     const lancamentos = firebaseObjectToArray(lancSnap.val());
     
+    // 3. Usa a lista completa de contas para encontrar os nomes
     const lancamentosComNomes = lancamentos.map((lanc: any) => {
-        const contaDebito = contas.find((c: any) => c.id === lanc.contaDebitoId);
-        const contaCredito = contas.find((c: any) => c.id === lanc.contaCreditoId);
+        const contaDebito = todasAsContas.find((c: any) => c.id === lanc.contaDebitoId);
+        const contaCredito = todasAsContas.find((c: any) => c.id === lanc.contaCreditoId);
         return { ...lanc, nomeContaDebito: contaDebito?.nome_conta, nomeContaCredito: contaCredito?.nome_conta };
     });
+    
+    // --- FIM DA CORREÇÃO ---
+
     res.status(200).json(lancamentosComNomes);
 });
 
