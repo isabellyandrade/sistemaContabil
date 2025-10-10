@@ -161,19 +161,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tr.innerHTML = `<td>${c.codigo}</td><td>${c.nome_conta}</td><td>${c.grupo_contabil}</td><td>${c.subgrupo1}</td><td>${c.subgrupo2}</td>`;
             
-            // Adiciona o evento de clique para selecionar a linha
-            tr.addEventListener('click', () => {
-                // Remove a seleção de qualquer outra linha
-                const linhaSelecionadaAnterior = document.querySelector('#tabela-contas-corpo tr.selecionada');
-                if (linhaSelecionadaAnterior) {
-                    linhaSelecionadaAnterior.classList.remove('selecionada');
-                }
-                // Adiciona a classe de seleção na linha clicada
-                tr.classList.add('selecionada');
-                // Habilita os botões de editar e excluir
-                btnEditarConta.disabled = false;
-                btnExcluirConta.disabled = false;
-            });
+// Adiciona o evento de clique para selecionar/deselecionar a linha
+      tr.addEventListener('click', () => {
+        const linhaJaSelecionada = tr.classList.contains('selecionada');
+
+        // Primeiro, remove a seleção de QUALQUER linha que possa estar selecionada
+        const qualquerLinhaSelecionada = document.querySelector('#tabela-contas-corpo tr.selecionada');
+        if (qualquerLinhaSelecionada) {
+            qualquerLinhaSelecionada.classList.remove('selecionada');
+        }
+
+        // Agora, a lógica principal
+        if (linhaJaSelecionada) {
+            // Se a linha que clicamos JÁ ESTAVA selecionada, a gente só desabilita os botões.
+            // A classe 'selecionada' já foi removida no passo anterior.
+            btnEditarConta.disabled = true;
+            btnExcluirConta.disabled = true;
+        } else {
+            // Se era uma linha nova, a gente adiciona a seleção nela e habilita os botões.
+            tr.classList.add('selecionada');
+            btnEditarConta.disabled = false;
+            btnExcluirConta.disabled = false;
+        }
+      });
 
             tabelaContasCorpo.appendChild(tr);
         });
