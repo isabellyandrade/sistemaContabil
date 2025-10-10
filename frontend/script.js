@@ -238,8 +238,7 @@ formNovaConta.addEventListener('submit', async e => {
           <td>${l.historico}</td>
           <td>${l.nomeContaDebito}</td>
           <td>${l.nomeContaCredito}</td>
-          <td>${l.valor.toFixed(2)}</td>
-        `;
+          <td>${(typeof l.valor === 'number' ? l.valor.toFixed(2) : '0.00')}</td>        `;
         tabelaLancamentosCorpo.appendChild(tr);
       });
     } catch (e) {
