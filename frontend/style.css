@@ -205,3 +205,8 @@ tfoot {
     background-color: #61b9fc !important; /* Cor de destaque */
     font-weight: bold;
 }
+
+#tabela-lancamentos-corpo tr.selecionada {
+  background-color: #61b9fc !important;
+  font-weight: bold;
+}
