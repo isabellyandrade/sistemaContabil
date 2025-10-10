@@ -280,17 +280,19 @@ app.get("/api/lancamentos", verificarToken, verificarMembro, async (req: Request
 app.post("/api/lancamentos", verificarToken, verificarMembro, async (req: Request, res: Response) => {
     const empresaId = (req as any).empresaId;;
     const { historico, valor, contaDebitoId, contaCreditoId } = req.body;
-    const novoLancamento = {
-        data: new Date().toLocaleDateString("pt-BR"),
-        historico,
-        valor: parseFloat(valor),
-        contaDebitoId,
-        contaCreditoId,
-        empresa_id: empresaId
-    };
-    const ref = db.ref("lancamentos").push();
-    await ref.set(novoLancamento);
-    res.status(201).json({ id: ref.key, ...novoLancamento });
+    const valorFormatado = parseFloat(String(valor).replace(',', '.'));
+
+        const novoLancamento = {
+                data: new Date().toLocaleDateString("pt-BR"),
+                historico,
+                valor: isNaN(valorFormatado) ? 0 : valorFormatado, // Salva 0 se o valor for inválido
+                 contaDebitoId,
+                contaCreditoId,
+                empresa_id: empresaId
+             };
+            const ref = db.ref("lancamentos").push();
+            await ref.set(novoLancamento);
+            res.status(201).json({ id: ref.key, ...novoLancamento });
 });
 
 app.delete("/api/lancamentos/:lancamentoId", verificarToken, verificarMembro, async (req: Request, res: Response) => {
