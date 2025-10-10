@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const nomeContaRazaoH2 = document.getElementById('nome-conta-razao');
   const tabelaRazaoCorpo = document.getElementById('tabela-razao-corpo');
   const tabelaRazaoRodape = document.getElementById('tabela-razao-rodape');
+  const btnExcluirLancamento = document.getElementById('btnExcluirLancamento');
 
   // --- ELEMENTOS: Livro Diário ---
   const formNovoLancamento = document.getElementById('form-novo-lancamento');
@@ -250,6 +251,21 @@ formNovaConta.addEventListener('submit', async e => {
           <td>${l.nomeContaCredito}</td>
           <td>${(typeof l.valor === 'number' ? l.valor.toFixed(2) : '0.00')}</td>        `;
         tabelaLancamentosCorpo.appendChild(tr);
+        tr.dataset.lancamentoId = l.id; // Armazena o ID do lançamento
+
+        tr.addEventListener('click', () => {
+          // Desmarca outra seleção anterior
+          const linhaSelecionadaAnterior = document.querySelector('#tabela-lancamentos-corpo tr.selecionada');
+          if (linhaSelecionadaAnterior) {
+              linhaSelecionadaAnterior.classList.remove('selecionada');
+          }
+
+          // Marca a linha atual como selecionada
+          tr.classList.add('selecionada');
+
+          // Habilita o botão de excluir
+          btnExcluirLancamento.disabled = false;
+        });
       });
     } catch (e) {
       console.error('Erro ao carregar lançamentos:', e);
@@ -533,6 +549,33 @@ formNovaConta.addEventListener('submit', async e => {
           }
       }
   });
+
+
+  btnExcluirLancamento.addEventListener('click', async () => {
+    const linhaSelecionada = document.querySelector('#tabela-lancamentos-corpo tr.selecionada');
+    if (!linhaSelecionada) {
+        alert('Por favor, selecione um lançamento para excluir.');
+        return;
+    }
+  
+    const lancamentoId = linhaSelecionada.dataset.lancamentoId;
+  
+    if (confirm('Tem certeza que deseja excluir este lançamento?')) {
+      try {
+        await fetchAutenticado(`/lancamentos/${lancamentoId}`, {
+          method: 'DELETE'
+        });
+  
+        // Atualiza a lista após exclusão
+        await carregarLancamentos();
+        btnExcluirLancamento.disabled = true;
+  
+      } catch (error) {
+        console.error('Erro ao excluir lançamento:', error);
+        alert('Não foi possível excluir o lançamento.');
+      }
+    }
+  });  
 
     
     await carregarContas();

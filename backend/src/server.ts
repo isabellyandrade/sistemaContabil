@@ -293,6 +293,37 @@ app.post("/api/lancamentos", verificarToken, verificarMembro, async (req: Reques
     res.status(201).json({ id: ref.key, ...novoLancamento });
 });
 
+app.delete("/api/lancamentos/:lancamentoId", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    const empresaId = (req as any).empresaId;
+    const { lancamentoId } = req.params;
+
+    try {
+        // Busca o lançamento pelo ID
+        const snapshotLancamento = await db.ref(`lancamentos/${lancamentoId}`).once('value');
+        const dadosLancamento = snapshotLancamento.val();
+
+        // Verifica se o lançamento existe
+        if (!snapshotLancamento.exists()) {
+            return res.status(404).json({ message: "Lançamento não encontrado." });
+        }
+
+        // Verifica se o lançamento pertence à empresa do usuário
+        if (dadosLancamento.empresa_id !== empresaId) {
+            return res.status(403).json({ message: "Você não tem permissão para excluir este lançamento." });
+        }
+
+        // Remove o lançamento
+        await db.ref(`lancamentos/${lancamentoId}`).remove();
+
+        return res.status(200).json({ message: "Lançamento excluído com sucesso." });
+
+    } catch (error) {
+        console.error("Erro ao excluir lançamento:", error);
+        return res.status(500).json({ message: "Erro interno ao excluir o lançamento." });
+    }
+});
+
+
 // --- ROTAS DE RELATÓRIOS ---
 
 // (Sua função groupBy deve estar definida antes desta rota)
