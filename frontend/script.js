@@ -423,11 +423,25 @@ formNovaConta.addEventListener('submit', async e => {
     });
   }
 
+  function abrirModalParaNovaConta() {
+    // 1. Reseta o formulário para limpar todos os campos de input
+    formNovaConta.reset(); 
+
+    // 2. Garante que o campo oculto de ID de edição esteja vazio
+    document.getElementById('conta-id-edicao').value = ''; 
+
+    // 3. Restaura o título original do modal para "Adicionar"
+    document.getElementById('modal-nova-conta').querySelector('h2').textContent = 'Adicionar Nova Conta';
+
+    // 4. Finalmente, abre o modal
+    toggleModal();
+}
+
 
   // --- INICIALIZAÇÃO DO APLICATIVO ---
   async function inicializarApp() {
       menuItems.forEach(item => item.addEventListener('click', () => showPage(item.dataset.page)));
-      btnAdicionar.addEventListener('click', toggleModal);
+      btnAdicionar.addEventListener('click', abrirModalParaNovaConta);
       btnFecharModal.addEventListener('click', toggleModal);
       btnGerarBalanco.addEventListener('click', gerarBalancoPatrimonial);
       btnGerarRazao.addEventListener('click', gerarLivroRazao);
