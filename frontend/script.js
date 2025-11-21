@@ -471,48 +471,52 @@ async function gerarBalancoPatrimonial() {
     let total = 0;
 
     contas.forEach(conta => {
-      // Ajuste do sinal
+      // 1. Ajuste do sinal (Ativo/Despesa = Positivo, Passivo/Receita = Invertido visualmente)
       let saldoExibicao = conta.saldo;
       if (grupoPai !== 'Ativo' && grupoPai !== 'Despesas') {
            saldoExibicao = conta.saldo * -1;
       }
 
-      // Cálculo AV
+      // 2. Cálculo da Análise Vertical (AV)
       let av = 0;
       if (totalBase > 0) av = (saldoExibicao / totalBase) * 100;
 
-      // Cálculo AH (Necessita de saldo_anterior vindo da API)
-      let textoAh = '-'; // Padrão
+      // 3. Cálculo da Análise Horizontal (AH)
+      let ah = 0; // <--- AQUI ESTAVA O PROBLEMA: Precisamos declarar ela antes!
+      let textoAh = '-';
+      
       const saldoAnteriorBruto = conta.saldo_anterior || 0; 
       const saldoAnterior = (grupoPai === 'Ativo' || grupoPai === 'Despesas') ? saldoAnteriorBruto : saldoAnteriorBruto * -1;
-
+      
+      // Lógica Matemática da AH
       if (saldoAnterior !== 0) {
-          // Se tinha saldo antes, calcula a % normal
           ah = ((saldoExibicao - saldoAnterior) / Math.abs(saldoAnterior)) * 100;
           textoAh = ah.toFixed(1) + '%';
       } else if (saldoExibicao !== 0) {
-          // Se antes era 0 e agora tem valor, mostramos "Novo" ou um ícone
-          textoAh = '<span style="font-size:0.7em; color:blue;">NOVO</span>';
+          // Se antes era 0 e agora tem valor, consideramos "Crescimento infinito/Novo"
+          ah = 100; // Definimos positivo para ficar verde
+          textoAh = '<span style="font-size:0.7em; color:blue; font-weight:bold;">NOVO</span>';
       }
-
-      // Formatação de cor para AH
+      
+      // 4. Definição das Cores (Vermelho/Verde)
       let classeAh = '';
-      if (saldoAnterior !== 0) {
-          classeAh = ah < 0 ? 'text-red' : (ah > 0 ? 'text-green' : '');
+      // Só aplica cor se houver alguma variação ou saldo
+      if (saldoAnterior !== 0 || saldoExibicao !== 0) {
+          classeAh = ah < -0.01 ? 'text-red' : (ah > 0.01 ? 'text-green' : '');
       }
 
       html += `
       <div class="balanco-conta">
-          <span>&nbsp;&nbsp;&nbsp;&nbsp;${conta.nome_conta}</span>
-          <span>${saldoExibicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-          <span style="color: #7f8c8d; font-size: 0.8em;">${av.toFixed(1)}%</span>
-          <span class="${classeAh}" style="font-size: 0.8em;">${textoAh}</span>
+        <span>&nbsp;&nbsp;&nbsp;&nbsp;${conta.nome_conta}</span>
+        <span>${saldoExibicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+        <span style="color: #7f8c8d; font-size: 0.8em;">${av.toFixed(1)}%</span>
+        <span class="${classeAh}" style="font-size: 0.8em;">${textoAh}</span>
       </div>`;
       
       total += saldoExibicao;
     });
     return { html, total };
-  }
+}
 
   function renderizarGrupos(grupos, grupoPai, totalBase) {
     let html = ''; 
