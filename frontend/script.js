@@ -347,29 +347,65 @@ formNovaConta.addEventListener('submit', async e => {
     }
   }
 
-  async function gerarBalancoPatrimonial() {
+  function calcularTotalArvore(grupos) {
+      let total = 0;
+      if (!grupos) return 0;
+
+      Object.keys(grupos).forEach(grupo => {
+          const subgrupos = grupos[grupo];
+          Object.keys(subgrupos).forEach(subgrupo => {
+              const contas = subgrupos[subgrupo];
+              if (Array.isArray(contas)) {
+                  contas.forEach(c => {
+                      // Soma o valor absoluto para garantir o totalizador positivo
+                      total += Math.abs(c.saldo); 
+                  });
+              }
+          });
+      });
+      return total;
+  }
+
+async function gerarBalancoPatrimonial() {
     try {
         const response = await fetchAutenticado('/balanco-patrimonial');
         const relatorio = await response.json();
 
-        // --- Renderiza Lado do Ativo (sem mudanças) ---
-        const resultadoAtivo = renderizarGrupos(relatorio.ativo, 'Ativo');
+        // 1. Calcular Totais Base ANTES de renderizar (para usar na AV)
+        const totalAtivoBase = calcularTotalArvore(relatorio.ativo);
+        const totalPassivoBase = calcularTotalArvore(relatorio.passivo); 
+        const totalPLBase = calcularTotalArvore(relatorio.patrimonioLiquido);
+        const totalPassivoEPLBase = totalPassivoBase + totalPLBase; 
+
+        // HTML do cabeçalho das colunas
+        const headerCols = `
+            <div class="balanco-header-cols">
+                <span>Conta</span>
+                <span>Saldo</span>
+                <span>AV%</span>
+                <span>AH%</span>
+            </div>`;
+
+        // --- Renderiza Lado do Ativo ---
+        const resultadoAtivo = renderizarGrupos(relatorio.ativo, 'Ativo', totalAtivoBase);
         const ladoAtivoDiv = document.getElementById('lado-ativo');
         ladoAtivoDiv.innerHTML = `
             <div class="balanco-header">ATIVO</div>
+            ${headerCols}
             <div class="balanco-grupo">${resultadoAtivo.html}</div>
             <div class="balanco-total">
                 <span>TOTAL ATIVO</span>
                 <span>${resultadoAtivo.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </div>`;
 
-        // --- Renderiza Lado Direito (agora com mais grupos) ---
-        const resultadoPassivo = renderizarGrupos(relatorio.passivo, 'Passivo');
-        const resultadoPL = renderizarGrupos(relatorio.patrimonioLiquido, 'Patrimônio Líquido');
+        // --- Renderiza Lado Passivo e PL ---
+        const resultadoPassivo = renderizarGrupos(relatorio.passivo, 'Passivo', totalPassivoEPLBase);
+        const resultadoPL = renderizarGrupos(relatorio.patrimonioLiquido, 'Patrimônio Líquido', totalPassivoEPLBase);
         const totalPassivoPL = resultadoPassivo.total + resultadoPL.total;
         
         const conteudoPassivoPlDiv = document.getElementById('conteudo-passivo-pl');
         conteudoPassivoPlDiv.innerHTML = `
+            ${headerCols}
             <div class="balanco-grupo">${resultadoPassivo.html}</div>
             <div class="balanco-grupo">${resultadoPL.html}</div>
             <div class="balanco-total">
@@ -377,21 +413,26 @@ formNovaConta.addEventListener('submit', async e => {
                 <span>${totalPassivoPL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </div>`;
 
-        // --- NOVO: Renderiza Receitas e Despesas ---
-        const resultadoReceitas = renderizarGrupos(relatorio.receitas, 'Receitas');
+        // --- Renderiza Receitas e Despesas ---
+        const totalReceitasBase = calcularTotalArvore(relatorio.receitas);
+        const baseDRE = totalReceitasBase > 0 ? totalReceitasBase : 1;
+
+        const resultadoReceitas = renderizarGrupos(relatorio.receitas, 'Receitas', baseDRE);
         const ladoReceitasDiv = document.getElementById('lado-receitas');
         ladoReceitasDiv.innerHTML = `
             <div class="balanco-header">RECEITAS</div>
+            ${headerCols}
             <div class="balanco-grupo">${resultadoReceitas.html}</div>
             <div class="balanco-total">
                 <span>TOTAL RECEITAS</span>
                 <span>${resultadoReceitas.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </div>`;
         
-        const resultadoDespesas = renderizarGrupos(relatorio.despesas, 'Despesas');
+        const resultadoDespesas = renderizarGrupos(relatorio.despesas, 'Despesas', baseDRE);
         const ladoDespesasDiv = document.getElementById('lado-despesas');
         ladoDespesasDiv.innerHTML = `
             <div class="balanco-header">DESPESAS</div>
+            ${headerCols}
             <div class="balanco-grupo">${resultadoDespesas.html}</div>
             <div class="balanco-total">
                 <span>TOTAL DESPESAS</span>
@@ -401,35 +442,73 @@ formNovaConta.addEventListener('submit', async e => {
     } catch (error) {
         console.error('Erro ao gerar Balanço Patrimonial:', error);
     }
-}
+  }
 
-  function renderizarContas(contas, grupoPai) {
-    let html = ''; let total = 0;
+  function renderizarContas(contas, grupoPai, totalBase) {
+    let html = ''; 
+    let total = 0;
+
     contas.forEach(conta => {
-      const saldoExibicao = (grupoPai === 'Ativo') ? conta.saldo : conta.saldo * -1;
-      html += `<div class="balanco-conta"><span>&nbsp;&nbsp;&nbsp;&nbsp;${conta.nome_conta}</span><span>${saldoExibicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`;
+      // Ajuste do sinal
+      let saldoExibicao = conta.saldo;
+      if (grupoPai !== 'Ativo' && grupoPai !== 'Despesas') {
+           saldoExibicao = conta.saldo * -1;
+      }
+
+      // Cálculo AV
+      let av = 0;
+      if (totalBase > 0) av = (saldoExibicao / totalBase) * 100;
+
+      // Cálculo AH (Necessita de saldo_anterior vindo da API)
+      let ah = 0;
+      // Assumindo 0 se não existir saldo_anterior
+      const saldoAnteriorBruto = conta.saldo_anterior || 0; 
+      const saldoAnterior = (grupoPai === 'Ativo' || grupoPai === 'Despesas') ? saldoAnteriorBruto : saldoAnteriorBruto * -1;
+      
+      if (saldoAnterior !== 0) {
+          ah = ((saldoExibicao - saldoAnterior) / Math.abs(saldoAnterior)) * 100;
+      }
+      
+      const classeAh = ah < 0 ? 'text-red' : (ah > 0 ? 'text-green' : '');
+      const textoAh = saldoAnterior !== 0 ? ah.toFixed(1) + '%' : '-';
+
+      html += `
+      <div class="balanco-conta">
+        <span>&nbsp;&nbsp;&nbsp;&nbsp;${conta.nome_conta}</span>
+        <span>${saldoExibicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+        <span style="color: #7f8c8d; font-size: 0.8em;">${av.toFixed(1)}%</span>
+        <span class="${classeAh}" style="font-size: 0.8em;">${textoAh}</span>
+      </div>`;
+      
       total += saldoExibicao;
     });
     return { html, total };
   }
 
-  function renderizarGrupos(grupos, grupoPai) {
-    let html = ''; let total = 0;
+  function renderizarGrupos(grupos, grupoPai, totalBase) {
+    let html = ''; 
+    let totalCalculado = 0;
     const chavesGrupos = Object.keys(grupos);
+    
     chavesGrupos.forEach(chaveGrupo => {
       html += `<div class="balanco-grupo-titulo">${chaveGrupo}</div>`;
-      const subgrupos = grupos[chaveGrupo]; const chavesSubgrupos = Object.keys(subgrupos);
+      const subgrupos = grupos[chaveGrupo]; 
+      const chavesSubgrupos = Object.keys(subgrupos);
+      
       chavesSubgrupos.forEach(chaveSubgrupo => {
-        if (chaveSubgrupo && chaveSubgrupo !== 'undefined' && chaveSubgrupo.trim() !== '') { html += `<div class="balanco-conta"><span>&nbsp;&nbsp;<strong>${chaveSubgrupo}</strong></span><span></span></div>`;}
+        if (chaveSubgrupo && chaveSubgrupo !== 'undefined' && chaveSubgrupo.trim() !== '') { 
+            // Note que aqui adicionei spans vazios para manter o grid alinhado nos títulos de subgrupo
+            html += `<div class="balanco-conta" style="background-color: #fafafa;"><span>&nbsp;&nbsp;<strong>${chaveSubgrupo}</strong></span><span></span><span></span><span></span></div>`;
+        }
         const contas = subgrupos[chaveSubgrupo];
 
-        console.log("Variável 'contas' que será renderizada:", contas); 
-
-        const resultadoContas = renderizarContas(contas, grupoPai);
-        html += resultadoContas.html; total += resultadoContas.total;
+        // Passamos o totalBase adiante
+        const resultadoContas = renderizarContas(contas, grupoPai, totalBase);
+        html += resultadoContas.html; 
+        totalCalculado += resultadoContas.total;
       });
     });
-    return { html, total };
+    return { html, total: totalCalculado };
   }
 
   function toggleModal() {

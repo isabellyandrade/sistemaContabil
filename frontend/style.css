@@ -118,10 +118,12 @@ tfoot {
   gap: 2rem;
   margin-top: 2rem;
   border: 1px solid #ddd;
+  align-items: flex-start; /* Garante que os quadros fiquem alinhados no topo */
 }
 
 .balanco-lado {
   flex: 1; /* Faz com que cada lado ocupe 50% do espaço */
+  min-width: 0; /* Evita que o grid estoure o container flex em telas menores */
 }
 /* Novo estilo para a área de Receitas e Despesas */
 .resultado-container {
@@ -133,37 +135,92 @@ tfoot {
   flex: 1; /* Faz com que cada coluna ocupe metade do espaço */
 }
 .balanco-header {
-  background-color: #ecf0f1;
+background-color: #ecf0f1;
   padding: 10px;
   font-weight: bold;
   text-align: center;
   border-bottom: 1px solid #ddd;
+  color: #2c3e50;
 }
 
+/* --- NOVO: Cabeçalho das Colunas (Nome, Valor, AV, AH) --- */
+.balanco-header-cols {
+    display: grid;
+    /* Define a largura das 4 colunas: 
+       3 partes para nome, 1.5 para valor, 0.7 para AV e AH */
+    grid-template-columns: 3fr 1.5fr 0.7fr 0.7fr; 
+    padding: 8px 10px;
+    font-weight: bold;
+    font-size: 0.75rem; /* Levemente menor para caber tudo */
+    color: #7f8c8d;
+    background-color: #fafafa;
+    border-bottom: 1px solid #eee;
+}
+
+.balanco-header-cols span { text-align: right; }
+.balanco-header-cols span:first-child { text-align: left; }
+
 .balanco-grupo {
-  padding: 10px;
+  padding: 0; /* Removido padding interno para o grid encostar na borda */
 }
 
 .balanco-grupo-titulo {
   font-weight: bold;
-  margin-top: 10px;
+  margin-top: 15px;
+  margin-bottom: 5px;
+  padding-left: 10px;
+  color: #34495e;
+  text-transform: uppercase;
+  font-size: 0.9rem;
 }
 
+/* --- ATUALIZADO: Linha da Conta (Agora é Grid) --- */
 .balanco-conta {
-  display: flex;
-  justify-content: space-between;
-  padding: 5px 10px;
+  display: grid;
+  /* Deve ter as mesmas proporções do header-cols para alinhar */
+  grid-template-columns: 3fr 1.5fr 0.7fr 0.7fr; 
+  padding: 6px 10px;
+  border-bottom: 1px solid #f5f5f5;
+  align-items: center; /* Centraliza verticalmente */
 }
 
+.balanco-conta:hover {
+    background-color: #fbfbfb;
+}
+
+/* Estilos dos textos dentro da linha */
+.balanco-conta span {
+    text-align: right;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+/* O primeiro span (Nome da conta) alinha à esquerda */
+.balanco-conta span:first-child {
+    text-align: left;
+    white-space: nowrap; /* Não quebra linha */
+    overflow: hidden;    /* Esconde o que passar */
+    text-overflow: ellipsis; /* Coloca ... se o nome for muito longo */
+    font-weight: 500;
+    color: #333;
+}
+
+/* Totalizadores */
 .balanco-total {
   display: flex;
   justify-content: space-between;
-  padding: 10px;
+  padding: 15px 10px;
   font-weight: bold;
-  border-top: 1px solid #ccc;
+  border-top: 2px solid #bdc3c7;
   margin-top: 10px;
   background-color: #f7f9fa;
+  color: #2c3e50;
+  font-size: 1.1rem;
 }
+
+/* --- NOVO: Cores para Análise Horizontal --- */
+.text-red { color: #e74c3c !important; font-weight: 600; }
+.text-green { color: #27ae60 !important; font-weight: 600; }
 
 .logo-login {
     max-width: 100px; /* Ajuste o tamanho conforme preferir */
