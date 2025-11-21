@@ -162,6 +162,18 @@ tfoot {
     font-size: 0.8rem;
 }
 
+.resultado-header-cols span,
+.resultado-conta span {
+    text-align: right; /* Alinha tudo à direita por padrão */
+}
+.resultado-header-cols span:first-child,
+.resultado-conta span:first-child {
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .total-resultado {
     display: grid;
     /* Usa o mesmo grid do resultado-conta */
@@ -176,11 +188,11 @@ tfoot {
 /* Alinhamento dos Totais */
 .total-resultado span:first-child {
     text-align: left;
-    grid-column: 1 / 3; /* Ocupa as duas primeiras colunas */
+    grid-column: 1 / 3; /* Ocupa as 2 primeiras colunas */
 }
 .total-resultado span:nth-child(2) {
     text-align: right;
-    grid-column: 3 / 4; /* Fica na coluna de Valor/Saldo */
+    grid-column: 3 / 4; /* Fica na coluna de Saldo */
 }
 
 /* Alinhamento do texto da conta */
@@ -206,22 +218,31 @@ background-color: #ecf0f1;
   color: #2c3e50;
 }
 
-/* --- NOVO: Cabeçalho das Colunas (Nome, Valor, AV, AH) --- */
 .balanco-header-cols {
     display: grid;
-    /* Define a largura das 4 colunas: 
-       3 partes para nome, 1.5 para valor, 0.7 para AV e AH */
-    grid-template-columns: 4fr 1.5fr 0.5fr 0.5fr; 
-    padding: 8px 10px;
+    /* NOVO: Mais espaço para 'Conta' (5fr) e ajuste fino nas porcentagens */
+    grid-template-columns: 5fr 1.5fr 0.6fr 0.6fr; 
+    padding: 10px; 
     font-weight: bold;
-    font-size: 0.75rem; /* Levemente menor para caber tudo */
+    font-size: 0.85rem; /* Levemente maior para legibilidade */
     color: #7f8c8d;
     background-color: #fafafa;
     border-bottom: 1px solid #eee;
 }
 
-.balanco-header-cols span { text-align: right; }
-.balanco-header-cols span:first-child { text-align: left; }
+.balanco-header-cols span,
+.balanco-conta span {
+    text-align: right; /* Alinha tudo à direita por padrão */
+}
+
+/* A primeira coluna (Nome da Conta) sempre alinha à esquerda */
+.balanco-header-cols span:first-child,
+.balanco-conta span:first-child {
+    text-align: left;
+    white-space: nowrap; /* Impede quebras de linha no cabeçalho */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 .balanco-grupo {
   padding: 0; /* Removido padding interno para o grid encostar na borda */
@@ -241,8 +262,8 @@ background-color: #ecf0f1;
 .balanco-conta {
   display: grid;
   /* Deve ter as mesmas proporções do header-cols para alinhar */
-  grid-template-columns: 4fr 1.5fr 0.5fr 0.5fr;
-  padding: 6px 10px;
+  grid-template-columns: 5fr 1.5fr 0.6fr 0.6fr; 
+  padding: 8px 10px; 
   border-bottom: 1px solid #f5f5f5;
   align-items: center; /* Centraliza verticalmente */
 }
@@ -270,10 +291,9 @@ background-color: #ecf0f1;
 /* Totalizadores */
 .balanco-total {
   display: grid;
-  /* Usa as mesmas colunas do balanco-conta */
-  grid-template-columns: 4fr 1.5fr 0.5fr 0.5fr; 
-  padding: 15px 10px;
+  grid-template-columns: 5fr 1.5fr 0.6fr 0.6fr; /* MESMAS PROPORÇÕES! */
   font-weight: bold;
+  padding: 15px 10px;
   border-top: 2px solid #bdc3c7;
   margin-top: 10px;
   background-color: #f7f9fa;
@@ -282,12 +302,11 @@ background-color: #ecf0f1;
 }
 
 .balanco-total span:first-child {
-    grid-column: 1 / span 3; /* Ocupa as 3 primeiras colunas */
+    grid-column: 1 / span 2; /* "TOTAL ATIVO" ocupa as 2 primeiras colunas */
     text-align: left;
 }
-/* O valor deve ficar na última coluna (a de saldo) */
 .balanco-total span:nth-child(2) {
-    grid-column: 4 / 5;
+    grid-column: 3 / span 2; /* O valor final do total ocupa as 2 últimas colunas */
     text-align: right;
 }
 
