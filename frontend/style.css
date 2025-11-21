@@ -127,8 +127,13 @@ tfoot {
 /* Novo estilo para a área de Receitas e Despesas */
 .resultado-container {
   display: flex;
-  gap: 10px; /* Reduzi o gap para ficarem mais próximos */
-  margin-top: 20px;
+  gap: 20px; /* Reduzi o gap para ficarem mais próximos */
+  margin-top: 10px;
+}
+
+.contas-resultado-full-width {
+    margin-top: 30px; /* Espaço para separar do Ativo/Passivo/PL */
+    width: 100%; /* Garante largura total */
 }
 
 .contas-resultado-header {
