@@ -105,46 +105,47 @@
                 </div>
               </section>
 
-              <section id="page-balancete" class="page">
-              <header><h1>Balanço Patrimonial</h1></header>
-              <div class="container">
-                <div class="toolbar" style="display: flex; align-items: flex-end; gap: 15px; flex-wrap: wrap;">
-                    
-                    <div>
-                        <label for="data-balanco-anterior" style="display: block; font-size: 0.8rem; margin-bottom: 5px; color: #666;">De (Data Anterior)</label>
-                        <input type="date" id="data-balanco-anterior" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
+<section id="page-balancete" class="page">
+    <header><h1>Balanço Patrimonial</h1></header>
+    
+    <div class="container"> 
+        
+        <div class="toolbar" style="display: flex; align-items: flex-end; gap: 15px; flex-wrap: wrap;">
+            <div>
+                <label for="data-balanco-anterior" style="display: block; font-size: 0.8rem; margin-bottom: 5px; color: #666;">De (Data Anterior)</label>
+                <input type="date" id="data-balanco-anterior" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
 
-                    <div>
-                        <label for="data-balanco-atual" style="display: block; font-size: 0.8rem; margin-bottom: 5px; color: #666;">Até (Data Atual)</label>
-                        <input type="date" id="data-balanco-atual" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
+            <div>
+                <label for="data-balanco-atual" style="display: block; font-size: 0.8rem; margin-bottom: 5px; color: #666;">Até (Data Atual)</label>
+                <input type="date" id="data-balanco-atual" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
 
-                    <button id="btnGerarBalanco" style="height: 38px;">Gerar Balanço</button>
-                </div>                      
-              </div>
-                  <div id="balanco-container-topo" class="balanco-container"> 
-                      
-                      <div id="lado-ativo" class="balanco-lado">
-                          <div class="balanco-header">ATIVO</div>
-                      </div>
-                      
-                      <div id="lado-passivo-pl" class="balanco-lado"> 
-                          <div class="balanco-header">PASSIVO E PATRIMÔNIO LÍQUIDO</div>
-                          <div id="conteudo-passivo-pl"></div>
-                      </div>
-                      
-                  </div> 
-                  <div id="grupo-resultado" class="contas-resultado-full-width">                            
-                      <div class="balanco-header">CONTAS DE RESULTADO</div>
-                      <div id="conteudo-resultado" class="resultado-container">
-                          <div id="lado-receitas"></div> 
-                          <div id="lado-despesas"></div>
-                      </div>
-                  </div>
+            <button id="btnGerarBalanco" style="height: 38px;">Gerar Balanço</button>
+        </div>                      
+        
+        <div id="balanco-container-topo" class="balanco-container"> 
+            
+            <div id="lado-ativo" class="balanco-lado">
+                <div class="balanco-header">ATIVO</div>
+            </div>
+            
+            <div id="lado-passivo-pl" class="balanco-lado"> 
+                <div class="balanco-header">PASSIVO E PATRIMÔNIO LÍQUIDO</div>
+                <div id="conteudo-passivo-pl"></div>
+            </div>
+            
+        </div> 
+        
+        <div id="grupo-resultado" class="contas-resultado-full-width">                            
+            <div class="balanco-header">CONTAS DE RESULTADO</div>
+            <div id="conteudo-resultado" class="resultado-container">
+                <div id="lado-receitas"></div> 
+                <div id="lado-despesas"></div>
+            </div>
+        </div>
 
-              </div>
-          </section>
+    </div> </section>
 
               <section id="page-dre" class="page">
               <h2>Demonstração do Resultado do Exercício (DRE)</h2>
