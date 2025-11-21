@@ -392,7 +392,7 @@ app.get("/api/balanco-patrimonial", verificarToken, verificarMembro, async (req:
 
             lancamentosDaConta.forEach((l: any) => {
                 // Converte a data do lançamento ("DD/MM/YYYY") para Date
-                const dataLancamento = converterDataPtBrParaDate(l.data);
+                const dataLancamento = converterDataParaDate(l.data);
                 const valor = Number(l.valor);
 
                 // Lógica do Saldo Atual
