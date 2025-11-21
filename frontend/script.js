@@ -367,17 +367,36 @@ formNovaConta.addEventListener('submit', async e => {
   }
 
 async function gerarBalancoPatrimonial() {
+    // 1. Capturar os valores dos inputs de data
+    const dataAtual = document.getElementById('data-balanco-atual').value;
+    const dataAnterior = document.getElementById('data-balanco-anterior').value;
+
+    if (!dataAtual) {
+        alert("Por favor, selecione a data do balanço.");
+        return;
+    }
+
     try {
-        const response = await fetchAutenticado('/balanco-patrimonial');
+        // 2. Montar a URL com Query Parameters (?data=...&comparacao=...)
+        const params = new URLSearchParams({
+            data: dataAtual,
+            comparacao: dataAnterior
+        });
+
+        // 3. Fazer a requisição ao backend (agora filtrando por data)
+        const response = await fetchAutenticado(`/balanco-patrimonial?${params.toString()}`);
         const relatorio = await response.json();
 
-        // 1. Calcular Totais Base ANTES de renderizar (para usar na AV)
+        // 4. Calcular Totais Base para a Análise Vertical (AV)
+        // Precisamos saber o total do grupo ANTES de desenhar as linhas individuais
         const totalAtivoBase = calcularTotalArvore(relatorio.ativo);
         const totalPassivoBase = calcularTotalArvore(relatorio.passivo); 
         const totalPLBase = calcularTotalArvore(relatorio.patrimonioLiquido);
+        
+        // A base da AV do Passivo geralmente é o (Total Passivo + PL)
         const totalPassivoEPLBase = totalPassivoBase + totalPLBase; 
 
-        // HTML do cabeçalho das colunas
+        // 5. Definir o HTML do cabeçalho das colunas
         const headerCols = `
             <div class="balanco-header-cols">
                 <span>Conta</span>
@@ -386,9 +405,10 @@ async function gerarBalancoPatrimonial() {
                 <span>AH%</span>
             </div>`;
 
-        // --- Renderiza Lado do Ativo ---
+        // --- RENDERIZAÇÃO: Lado do Ativo ---
         const resultadoAtivo = renderizarGrupos(relatorio.ativo, 'Ativo', totalAtivoBase);
         const ladoAtivoDiv = document.getElementById('lado-ativo');
+        
         ladoAtivoDiv.innerHTML = `
             <div class="balanco-header">ATIVO</div>
             ${headerCols}
@@ -398,7 +418,7 @@ async function gerarBalancoPatrimonial() {
                 <span>${resultadoAtivo.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </div>`;
 
-        // --- Renderiza Lado Passivo e PL ---
+        // --- RENDERIZAÇÃO: Lado Passivo e PL ---
         const resultadoPassivo = renderizarGrupos(relatorio.passivo, 'Passivo', totalPassivoEPLBase);
         const resultadoPL = renderizarGrupos(relatorio.patrimonioLiquido, 'Patrimônio Líquido', totalPassivoEPLBase);
         const totalPassivoPL = resultadoPassivo.total + resultadoPL.total;
@@ -413,8 +433,9 @@ async function gerarBalancoPatrimonial() {
                 <span>${totalPassivoPL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </div>`;
 
-        // --- Renderiza Receitas e Despesas ---
+        // --- RENDERIZAÇÃO: Receitas e Despesas (DRE) ---
         const totalReceitasBase = calcularTotalArvore(relatorio.receitas);
+        // Evita divisão por zero se não houver receitas
         const baseDRE = totalReceitasBase > 0 ? totalReceitasBase : 1;
 
         const resultadoReceitas = renderizarGrupos(relatorio.receitas, 'Receitas', baseDRE);
@@ -441,8 +462,9 @@ async function gerarBalancoPatrimonial() {
 
     } catch (error) {
         console.error('Erro ao gerar Balanço Patrimonial:', error);
+        alert('Erro ao gerar o balanço. Verifique o console para mais detalhes.');
     }
-  }
+}
 
   function renderizarContas(contas, grupoPai, totalBase) {
     let html = ''; 
@@ -511,6 +533,20 @@ async function gerarBalancoPatrimonial() {
     return { html, total: totalCalculado };
   }
 
+  function definirDatasPadrao() {
+    const hoje = new Date();
+    
+    // Data Atual: Hoje
+    const dataAtualFormatada = hoje.toISOString().split('T')[0];
+    document.getElementById('data-balanco-atual').value = dataAtualFormatada;
+
+    // Data Anterior: 1 mês atrás (padrão para análise mensal)
+    const mesPassado = new Date();
+    mesPassado.setMonth(mesPassado.getMonth() - 1);
+    const dataAnteriorFormatada = mesPassado.toISOString().split('T')[0];
+    document.getElementById('data-balanco-anterior').value = dataAnteriorFormatada;
+}
+
   function toggleModal() {
     modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
   }
@@ -550,6 +586,8 @@ async function gerarBalancoPatrimonial() {
       btnFecharModal.addEventListener('click', toggleModal);
       btnGerarBalanco.addEventListener('click', gerarBalancoPatrimonial);
       btnGerarRazao.addEventListener('click', gerarLivroRazao);
+
+      definirDatasPadrao();
       
       if (formConvidarMembro) {
         formConvidarMembro.addEventListener('submit', async (e) => {

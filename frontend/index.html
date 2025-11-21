@@ -93,10 +93,19 @@
               <section id="page-balancete" class="page">
                 <header><h1>Balanço Patrimonial</h1></header>
                 <div class="container">
-                  <div class="toolbar">
-                    <button id="btnGerarBalanco">Gerar Balanço</button>
-                    <span style="margin-left: 1rem;">Data de Referência: <strong id="data-referencia"></strong></span>
-                  </div>
+                <div class="toolbar" style="display: flex; align-items: flex-end; gap: 15px; flex-wrap: wrap;">
+                    <div>
+                        <label for="data-balanco-atual" style="display: block; font-size: 0.8rem; margin-bottom: 5px; color: #666;">Data do Balanço (Atual)</label>
+                        <input type="date" id="data-balanco-atual" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+
+                    <div>
+                        <label for="data-balanco-anterior" style="display: block; font-size: 0.8rem; margin-bottom: 5px; color: #666;">Comparar com (Anterior)</label>
+                        <input type="date" id="data-balanco-anterior" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+
+                    <button id="btnGerarBalanco" style="height: 38px;">Gerar Balanço</button>
+                </div>
                   <div id="balanco-container" class="balanco-container">
                     <div id="lado-ativo" class="balanco-lado">
                         <div class="balanco-header">ATIVO</div>

@@ -338,28 +338,72 @@ const groupBy = (array: any[], key: string) => {
     }, {});
 };
 
+// Função auxiliar para converter string "DD/MM/YYYY" para objeto Date (zera hora para evitar problemas de fuso)
+const converterDataPtBrParaDate = (dataStr: string) => {
+    if (!dataStr) return new Date(0); // Retorna data muito antiga se inválido
+    const [dia, mes, ano] = dataStr.split('/');
+    return new Date(Number(ano), Number(mes) - 1, Number(dia));
+};
+
 app.get("/api/balanco-patrimonial", verificarToken, verificarMembro, async (req: Request, res: Response) => {
     try {
         const empresaId = (req as any).empresaId;
+        
+        // 1. Captura as datas da URL (Query Params)
+        // Se não vier nada, assume HOJE para data atual e data 0 para anterior
+        const queryDataAtual = req.query.data as string; 
+        const queryDataAnterior = req.query.comparacao as string;
 
-        // --- BUSCA DE DADOS (incluindo contas globais) ---
+        // Cria objetos Date para comparação (definimos hora 23:59:59 para pegar tudo do dia)
+        const dataCorteAtual = queryDataAtual ? new Date(queryDataAtual + 'T23:59:59') : new Date();
+        const dataCorteAnterior = queryDataAnterior ? new Date(queryDataAnterior + 'T23:59:59') : new Date(0);
+
+        // --- BUSCA DE DADOS (Mantido igual) ---
         const snapshotEmpresa = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
         const snapshotGlobal = await db.ref("contas").orderByChild('dono_uid').equalTo('GLOBAL').once("value");
         const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
 
         const contasDaEmpresa = firebaseObjectToArray(snapshotEmpresa.val());
         const contasGlobais = firebaseObjectToArray(snapshotGlobal.val());
-        const contas = [...contasGlobais, ...contasDaEmpresa]; // Junta as contas
+        const contas = [...contasGlobais, ...contasDaEmpresa];
         const lancamentos = firebaseObjectToArray(lancSnap.val());
 
-        // --- CÁLCULO DE SALDOS (sem alteração) ---
+        // --- CÁLCULO DE SALDOS COM FILTRO DE DATA ---
         const saldos = contas.map((conta: any) => {
-            const totalDebito = lancamentos.filter((l: any) => l.contaDebitoId === conta.id).reduce((s, l: any) => s + l.valor, 0);
-            const totalCredito = lancamentos.filter((l: any) => l.contaCreditoId === conta.id).reduce((s, l: any) => s + l.valor, 0);
-            return { ...conta, saldo: totalDebito - totalCredito };
-        }).filter((c: any) => c.saldo !== 0);
+            let saldoAtual = 0;
+            let saldoAnterior = 0;
 
-        // --- AGRUPAMENTO HIERÁRQUICO (COMPLETO) ---
+            // Filtra lançamentos que envolvem esta conta
+            const lancamentosDaConta = lancamentos.filter((l: any) => 
+                l.contaDebitoId === conta.id || l.contaCreditoId === conta.id
+            );
+
+            lancamentosDaConta.forEach((l: any) => {
+                // Converte a data do lançamento ("DD/MM/YYYY") para Date
+                const dataLancamento = converterDataPtBrParaDate(l.data);
+                const valor = Number(l.valor);
+
+                // Lógica do Saldo Atual
+                if (dataLancamento <= dataCorteAtual) {
+                    if (l.contaDebitoId === conta.id) saldoAtual += valor;
+                    if (l.contaCreditoId === conta.id) saldoAtual -= valor;
+                }
+
+                // Lógica do Saldo Anterior (Análise Horizontal)
+                if (dataLancamento <= dataCorteAnterior) {
+                    if (l.contaDebitoId === conta.id) saldoAnterior += valor;
+                    if (l.contaCreditoId === conta.id) saldoAnterior -= valor;
+                }
+            });
+
+            return { 
+                ...conta, 
+                saldo: saldoAtual, 
+                saldo_anterior: saldoAnterior // <--- AGORA O BACKEND RETORNA ISSO!
+            };
+        }).filter((c: any) => c.saldo !== 0 || c.saldo_anterior !== 0); // Mostra conta se tiver saldo em QUALQUER uma das datas
+
+        // --- AGRUPAMENTO HIERÁRQUICO (Mantido igual) ---
         const relatorioFinal = {
             ativo: {},
             passivo: {},
@@ -368,23 +412,32 @@ app.get("/api/balanco-patrimonial", verificarToken, verificarMembro, async (req:
             despesas: {}
         };
 
+        const groupBy = (array: any[], key: string) => {
+            return array.reduce((result, currentValue) => {
+              const groupKey = currentValue[key] || 'Sem Subgrupo';
+              if (!result[groupKey]) { result[groupKey] = []; }
+              result[groupKey].push(currentValue);
+              return result;
+            }, {});
+        };
+
         // Agrupa Ativo
         const ativoPorSubgrupo1 = groupBy(saldos.filter((c: any) => c.grupo_contabil === 'Ativo'), 'subgrupo1');
         for (const subgrupo1 in ativoPorSubgrupo1) { (relatorioFinal.ativo as any)[subgrupo1] = groupBy(ativoPorSubgrupo1[subgrupo1], 'subgrupo2'); }
 
-        // Agrupa Passivo (LINHA QUE FALTAVA)
+        // Agrupa Passivo
         const passivoPorSubgrupo1 = groupBy(saldos.filter((c: any) => c.grupo_contabil === 'Passivo'), 'subgrupo1');
         for (const subgrupo1 in passivoPorSubgrupo1) { (relatorioFinal.passivo as any)[subgrupo1] = groupBy(passivoPorSubgrupo1[subgrupo1], 'subgrupo2'); }
 
-        // Agrupa Patrimônio Líquido (LINHA QUE FALTAVA)
+        // Agrupa PL
         const plPorSubgrupo1 = groupBy(saldos.filter((c: any) => c.grupo_contabil === 'Patrimônio Líquido'), 'subgrupo1');
         for (const subgrupo1 in plPorSubgrupo1) { (relatorioFinal.patrimonioLiquido as any)[subgrupo1] = groupBy(plPorSubgrupo1[subgrupo1], 'subgrupo2'); }
 
-        // Agrupa Receitas (como você já fez)
+        // Agrupa Receitas
         const receitasPorSubgrupo1 = groupBy(saldos.filter((c: any) => c.grupo_contabil === 'Receitas'), 'subgrupo1');
         for (const subgrupo1 in receitasPorSubgrupo1) { (relatorioFinal.receitas as any)[subgrupo1] = groupBy(receitasPorSubgrupo1[subgrupo1], 'subgrupo2'); }
 
-        // Agrupa Despesas (como você já fez)
+        // Agrupa Despesas
         const despesasPorSubgrupo1 = groupBy(saldos.filter((c: any) => c.grupo_contabil === 'Despesas'), 'subgrupo1');
         for (const subgrupo1 in despesasPorSubgrupo1) { (relatorioFinal.despesas as any)[subgrupo1] = groupBy(despesasPorSubgrupo1[subgrupo1], 'subgrupo2'); }
         
