@@ -127,7 +127,66 @@ tfoot {
 /* Novo estilo para a área de Receitas e Despesas */
 .resultado-container {
   display: flex;
-  gap: 1.5rem; /* Espaço entre as colunas de receita e despesa */
+  gap: 10px; /* Reduzi o gap para ficarem mais próximos */
+  margin-top: 20px;
+}
+
+.contas-resultado-header {
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+    background-color: #ecf0f1;
+    border-bottom: 1px solid #ddd;
+    margin-top: 15px; /* Espaçamento da seção */
+}
+.resultado-header-cols,
+.resultado-conta {
+    display: grid;
+    /* Proporções: 4.5fr para Conta, 1.5fr para Saldo, 0.5fr para AV% */
+    grid-template-columns: 4.5fr 1.5fr 0.5fr; 
+    padding: 8px 10px;
+    align-items: center;
+    border-bottom: 1px dashed #eee;
+    font-size: 0.9rem;
+}
+
+.resultado-header-cols {
+    font-weight: bold;
+    background-color: #fafafa;
+    color: #7f8c8d;
+    font-size: 0.8rem;
+}
+
+.total-resultado {
+    display: grid;
+    /* Usa o mesmo grid do resultado-conta */
+    grid-template-columns: 4.5fr 1.5fr 0.5fr; 
+    font-weight: bold;
+    padding: 10px;
+    border-top: 2px solid #bdc3c7;
+    margin-top: 5px;
+    background-color: #f7f9fa;
+}
+
+/* Alinhamento dos Totais */
+.total-resultado span:first-child {
+    text-align: left;
+    grid-column: 1 / 3; /* Ocupa as duas primeiras colunas */
+}
+.total-resultado span:nth-child(2) {
+    text-align: right;
+    grid-column: 3 / 4; /* Fica na coluna de Valor/Saldo */
+}
+
+/* Alinhamento do texto da conta */
+.resultado-conta span:first-child {
+    text-align: left;
+    /* Mantém a quebra de linha para não cortar nomes longos */
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+.resultado-conta span:not(:first-child) {
+    text-align: right;
 }
 
 .resultado-container > div {
