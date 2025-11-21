@@ -482,24 +482,31 @@ async function gerarBalancoPatrimonial() {
       if (totalBase > 0) av = (saldoExibicao / totalBase) * 100;
 
       // Cálculo AH (Necessita de saldo_anterior vindo da API)
-      let ah = 0;
-      // Assumindo 0 se não existir saldo_anterior
+      let textoAh = '-'; // Padrão
       const saldoAnteriorBruto = conta.saldo_anterior || 0; 
       const saldoAnterior = (grupoPai === 'Ativo' || grupoPai === 'Despesas') ? saldoAnteriorBruto : saldoAnteriorBruto * -1;
-      
+
       if (saldoAnterior !== 0) {
+          // Se tinha saldo antes, calcula a % normal
           ah = ((saldoExibicao - saldoAnterior) / Math.abs(saldoAnterior)) * 100;
+          textoAh = ah.toFixed(1) + '%';
+      } else if (saldoExibicao !== 0) {
+          // Se antes era 0 e agora tem valor, mostramos "Novo" ou um ícone
+          textoAh = '<span style="font-size:0.7em; color:blue;">NOVO</span>';
       }
-      
-      const classeAh = ah < 0 ? 'text-red' : (ah > 0 ? 'text-green' : '');
-      const textoAh = saldoAnterior !== 0 ? ah.toFixed(1) + '%' : '-';
+
+      // Formatação de cor para AH
+      let classeAh = '';
+      if (saldoAnterior !== 0) {
+          classeAh = ah < 0 ? 'text-red' : (ah > 0 ? 'text-green' : '');
+      }
 
       html += `
       <div class="balanco-conta">
-        <span>&nbsp;&nbsp;&nbsp;&nbsp;${conta.nome_conta}</span>
-        <span>${saldoExibicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-        <span style="color: #7f8c8d; font-size: 0.8em;">${av.toFixed(1)}%</span>
-        <span class="${classeAh}" style="font-size: 0.8em;">${textoAh}</span>
+          <span>&nbsp;&nbsp;&nbsp;&nbsp;${conta.nome_conta}</span>
+          <span>${saldoExibicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+          <span style="color: #7f8c8d; font-size: 0.8em;">${av.toFixed(1)}%</span>
+          <span class="${classeAh}" style="font-size: 0.8em;">${textoAh}</span>
       </div>`;
       
       total += saldoExibicao;

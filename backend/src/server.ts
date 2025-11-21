@@ -338,11 +338,23 @@ const groupBy = (array: any[], key: string) => {
     }, {});
 };
 
-// Função auxiliar para converter string "DD/MM/YYYY" para objeto Date (zera hora para evitar problemas de fuso)
-const converterDataPtBrParaDate = (dataStr: string) => {
-    if (!dataStr) return new Date(0); // Retorna data muito antiga se inválido
-    const [dia, mes, ano] = dataStr.split('/');
-    return new Date(Number(ano), Number(mes) - 1, Number(dia));
+// Função auxiliar inteligente: Aceita "DD/MM/YYYY" ou "YYYY-MM-DD"
+const converterDataParaDate = (dataStr: string) => {
+    if (!dataStr) return new Date(0);
+    
+    // Se já estiver no formato ISO (YYYY-MM-DD), cria direto
+    if (dataStr.includes('-')) {
+        const [ano, mes, dia] = dataStr.split('-');
+        return new Date(Number(ano), Number(mes) - 1, Number(dia));
+    }
+    
+    // Se estiver no formato PT-BR (DD/MM/YYYY)
+    if (dataStr.includes('/')) {
+        const [dia, mes, ano] = dataStr.split('/');
+        return new Date(Number(ano), Number(mes) - 1, Number(dia));
+    }
+
+    return new Date(0); // Fallback
 };
 
 app.get("/api/balanco-patrimonial", verificarToken, verificarMembro, async (req: Request, res: Response) => {
