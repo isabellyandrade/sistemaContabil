@@ -35,6 +35,7 @@
                 <li data-page="livro-diario">Livro Diário</li>
                 <li data-page="livro-razao">Livro Razão</li> 
                 <li data-page="balancete">Balanço Patrimonial</li>
+                <li data-page="dre">DRE</li>
                 <li id="btn-logout" style="color: #f39c12; margin-top: 20px; cursor: pointer;">Sair</li>
               </ul>
             </aside>
@@ -141,6 +142,37 @@
                   </div>
                 </div>
               </section>
+
+              <section id="page-dre" style="display: none;">
+              <h2>Demonstração do Resultado do Exercício (DRE)</h2>
+              
+              <div class="toolbar" style="display: flex; align-items: flex-end; gap: 15px; flex-wrap: wrap;">
+                  <div>
+                      <label for="data-dre-inicio" style="display: block; font-size: 0.8rem; margin-bottom: 5px; color: #666;">Período Inicial (De)</label>
+                      <input type="date" id="data-dre-inicio" required style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                  </div>
+
+                  <div>
+                      <label for="data-dre-fim" style="display: block; font-size: 0.8rem; margin-bottom: 5px; color: #666;">Período Final (Até)</label>
+                      <input type="date" id="data-dre-fim" required style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                  </div>
+                  
+                  <button id="btnGerarDRE" style="height: 38px;">Gerar DRE</button>
+              </div>
+
+              <div class="relatorio-dre">
+                  <div class="dre-bloco receitas">
+                      <h3>RECEITAS</h3>
+                      <div id="dre-receitas"></div>
+                  </div>
+                  <div class="dre-bloco despesas">
+                      <h3>DESPESAS</h3>
+                      <div id="dre-despesas"></div>
+                  </div>
+                  
+                  <div id="dre-resultado-final" class="dre-resultado-final"></div>
+              </div>
+          </section>
 
               <section id="page-livro-razao" class="page">
                 <header><h1>Livro Razão</h1></header>

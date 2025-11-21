@@ -600,6 +600,150 @@ document.getElementById('data-lancamento').value = hojeISO;
     toggleModal();
 }
 
+function definirDatasDREPadrao() {
+    const hoje = new Date();
+    const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    
+    const formatarData = (data) => data.toISOString().split('T')[0];
+
+    document.getElementById('data-dre-inicio').value = formatarData(primeiroDiaMes);
+    document.getElementById('data-dre-fim').value = formatarData(hoje);
+}
+
+// Adicione esta função no seu script.js
+async function gerarDRE() {
+    const dataInicio = document.getElementById('data-dre-inicio').value;
+    const dataFim = document.getElementById('data-dre-fim').value;
+
+    if (!dataInicio || !dataFim) {
+        alert("Por favor, selecione as datas de início e fim do período.");
+        return;
+    }
+
+    try {
+        const params = new URLSearchParams({
+            inicio: dataInicio,
+            fim: dataFim
+        });
+
+        const response = await fetchAutenticado(`/dre?${params.toString()}`);
+        const relatorioDRE = await response.json();
+        
+        // Reutilizamos a lógica de calcularTotalArvore (que só soma os saldos)
+        const totalReceitas = calcularTotalArvore(relatorioDRE.receitas);
+        const totalDespesas = calcularTotalArvore(relatorioDRE.despesas);
+
+        // A base da AV da DRE é o Total de Receitas (Receita Bruta/Líquida)
+        const baseDRE = totalReceitas > 0 ? totalReceitas : 1; 
+        
+        // A DRE é um relatório mais simples (sem AH)
+        const headerCols = `
+            <div class="balanco-header-cols">
+                <span>Conta</span>
+                <span class="dre-col-saldo">Valor</span>
+                <span class="dre-col-av">AV%</span>
+            </div>`;
+
+        // 1. RENDERIZAR RECEITAS (Valores de receitas são negativos no saldo, mas positivos no DRE)
+        const resultadoReceitas = renderizarGruposDRE(relatorioDRE.receitas, 'Receitas', baseDRE);
+        document.getElementById('dre-receitas').innerHTML = `
+            ${headerCols}
+            ${resultadoReceitas.html}
+            <div class="dre-subtotal">
+                <span>TOTAL RECEITAS</span>
+                <span class="dre-col-saldo">${Math.abs(resultadoReceitas.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>`;
+
+        // 2. RENDERIZAR DESPESAS
+        const resultadoDespesas = renderizarGruposDRE(relatorioDRE.despesas, 'Despesas', baseDRE);
+        document.getElementById('dre-despesas').innerHTML = `
+            ${headerCols}
+            ${resultadoDespesas.html}
+            <div class="dre-subtotal">
+                <span>TOTAL DESPESAS</span>
+                <span class="dre-col-saldo">${resultadoDespesas.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>`;
+
+        // 3. CALCULAR E RENDERIZAR RESULTADO FINAL
+        const lucroOuPrejuizo = Math.abs(resultadoReceitas.total) - resultadoDespesas.total;
+        
+        const classeResultado = lucroOuPrejuizo >= 0 ? 'dre-lucro' : 'dre-prejuizo';
+        const textoResultado = lucroOuPrejuizo >= 0 ? 'LUCRO LÍQUIDO' : 'PREJUÍZO LÍQUIDO';
+
+        document.getElementById('dre-resultado-final').innerHTML = `
+            <div class="${classeResultado}">
+                <span>${textoResultado}</span>
+                <span>${Math.abs(lucroOuPrejuizo).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>`;
+
+    } catch (error) {
+        console.error('Erro ao gerar DRE:', error);
+        alert('Erro ao gerar a DRE. Verifique o console para mais detalhes.');
+    }
+}
+
+// 4. Conectar a função ao botão na inicialização
+document.getElementById('btnGerarDRE').addEventListener('click', gerarDRE);
+
+// 5. Crie a função de renderização específica para DRE (REUTILIZANDO renderizarGrupos e renderizarContas)
+// Reutilizaremos o renderizarContas, mas vamos adaptar o renderizarGrupos para não esperar o AH
+function renderizarGruposDRE(grupos, grupoPai, totalBase) {
+    let html = '';
+    let totalCalculado = 0;
+    
+    // Converte de Objeto para Array de chaves (Subgrupos 1)
+    const subgrupos1 = Object.keys(grupos).sort();
+
+    subgrupos1.forEach(subgrupo1Key => {
+        html += `<h4 class="subgrupo-header">${subgrupo1Key}</h4>`;
+        
+        const subgrupos2 = grupos[subgrupo1Key];
+        const subgrupos2Keys = Object.keys(subgrupos2).sort();
+
+        subgrupos2Keys.forEach(subgrupo2Key => {
+            if (subgrupo2Key !== 'Sem Subgrupo') {
+                 html += `<h5 class="subgrupo-header">${subgrupo2Key}</h5>`;
+            }
+            
+            const contas = subgrupos2[subgrupo2Key];
+            const resultadoContas = renderizarContasDRE(contas, grupoPai, totalBase);
+            html += resultadoContas.html;
+            totalCalculado += resultadoContas.total;
+        });
+    });
+
+    return { html, total: totalCalculado };
+}
+
+// 6. Crie a função de renderização de contas (Cópia simplificada da Balanço, sem AH)
+function renderizarContasDRE(contas, grupoPai, totalBase) {
+    let html = '';
+    let total = 0;
+
+    contas.forEach(conta => {
+      // 1. Ajuste do sinal (DRE: Receita é Positivo visualmente, Despesa é Positivo visualmente)
+      // O saldo de Receita é NEGATIVO no banco, invertemos para positivo.
+      let saldoExibicao = conta.saldo;
+      if (grupoPai === 'Receitas') {
+           saldoExibicao = conta.saldo * -1; // Inverte o saldo de Receita para ser Positivo na DRE
+      }
+      // O saldo de Despesa já é positivo, mantém.
+
+      // 2. Cálculo da Análise Vertical (AV)
+      let av = 0;
+      if (totalBase > 0) av = (saldoExibicao / totalBase) * 100;
+
+      html += `
+      <div class="dre-conta">
+        <span>&nbsp;&nbsp;&nbsp;&nbsp;${conta.nome_conta}</span>
+        <span class="dre-col-saldo">${saldoExibicao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+        <span class="dre-col-av" style="color: #7f8c8d; font-size: 0.8em;">${av.toFixed(1)}%</span>
+      </div>`;
+      
+      total += saldoExibicao;
+    });
+    return { html, total };
+}
 
   // --- INICIALIZAÇÃO DO APLICATIVO ---
   async function inicializarApp() {
@@ -610,7 +754,8 @@ document.getElementById('data-lancamento').value = hojeISO;
       btnGerarRazao.addEventListener('click', gerarLivroRazao);
 
       definirDatasPadrao();
-      
+      definirDatasDREPadrao();
+
       if (formConvidarMembro) {
         formConvidarMembro.addEventListener('submit', async (e) => {
             e.preventDefault();

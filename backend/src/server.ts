@@ -532,6 +532,86 @@ app.get("/api/livro-razao/:contaId", verificarToken, verificarMembro, async (req
     }
 });
 
+// --- NOVO ENDPOINT: GET /api/dre ---
+app.get("/api/dre", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    try {
+        const empresaId = (req as any).empresaId;
+        
+        // Datas do período (De/Até)
+        const queryDataInicio = req.query.inicio as string; 
+        const queryDataFim = req.query.fim as string;
+        
+        // Conversão para objetos Date
+        const dataCorteInicio = queryDataInicio ? new Date(queryDataInicio + 'T00:00:00') : new Date(0);
+        // dataCorteFim deve incluir o dia inteiro
+        const dataCorteFim = queryDataFim ? new Date(queryDataFim + 'T23:59:59') : new Date();
+
+        // Busca de Contas e Lançamentos (Reutiliza a lógica)
+        const snapshotEmpresa = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+        const snapshotGlobal = await db.ref("contas").orderByChild('dono_uid').equalTo('GLOBAL').once("value");
+        const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
+
+        const contas = [...firebaseObjectToArray(snapshotGlobal.val()), ...firebaseObjectToArray(snapshotEmpresa.val())];
+        const lancamentos = firebaseObjectToArray(lancSnap.val());
+
+        // --- CÁLCULO FOCADO NO PERÍODO ---
+        const saldos = contas.map((conta: any) => {
+            let saldoPeriodo = 0;
+
+            const lancamentosDaConta = lancamentos.filter((l: any) => 
+                l.contaDebitoId === conta.id || l.contaCreditoId === conta.id
+            );
+
+            lancamentosDaConta.forEach((l: any) => {
+                const dataLancamento = converterDataParaDate(l.data);
+                const valor = Number(l.valor);
+
+                // ** FILTRO PRINCIPAL DA DRE: Lançamentos DENTRO DO PERÍODO **
+                if (dataLancamento > dataCorteInicio && dataLancamento <= dataCorteFim) {
+                    if (l.contaDebitoId === conta.id) saldoPeriodo += valor;
+                    if (l.contaCreditoId === conta.id) saldoPeriodo -= valor;
+                }
+            });
+
+            // A DRE não precisa de saldo_anterior, mas precisa do saldo do período.
+            return { ...conta, saldo: saldoPeriodo };
+        }).filter((c: any) => c.saldo !== 0) // Filtra contas sem movimento no período.
+        
+        // --- AGRUPAMENTO ---
+        const groupBy = (array: any[], key: string) => {
+            return array.reduce((result, currentValue) => {
+              const groupKey = currentValue[key] || 'Sem Subgrupo';
+              if (!result[groupKey]) { result[groupKey] = []; }
+              result[groupKey].push(currentValue);
+              return result;
+            }, {});
+        };
+
+        const contasResultado = saldos.filter((c: any) => 
+            c.grupo_contabil === 'Receitas' || c.grupo_contabil === 'Despesas'
+        );
+
+        const relatorioFinal = {
+            receitas: {},
+            despesas: {}
+        };
+
+        // Agrupamento de Receitas
+        const receitasPorSubgrupo1 = groupBy(contasResultado.filter((c: any) => c.grupo_contabil === 'Receitas'), 'subgrupo1');
+        for (const subgrupo1 in receitasPorSubgrupo1) { (relatorioFinal.receitas as any)[subgrupo1] = groupBy(receitasPorSubgrupo1[subgrupo1], 'subgrupo2'); }
+
+        // Agrupamento de Despesas
+        const despesasPorSubgrupo1 = groupBy(contasResultado.filter((c: any) => c.grupo_contabil === 'Despesas'), 'subgrupo1');
+        for (const subgrupo1 in despesasPorSubgrupo1) { (relatorioFinal.despesas as any)[subgrupo1] = groupBy(despesasPorSubgrupo1[subgrupo1], 'subgrupo2'); }
+
+        return res.status(200).json(relatorioFinal);
+
+    } catch (error) {
+        console.error("ERRO FATAL NA DRE:", error);
+        return res.status(500).json({ message: "Erro interno no servidor ao gerar DRE." });
+    }
+});
+
 // ===================================================
 // SERVIR O FRONTEND VEM POR ÚLTIMO
 // ===================================================
