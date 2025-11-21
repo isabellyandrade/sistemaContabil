@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- NAVEGAÇÃO ---
   const menuItems = document.querySelectorAll('.menu li');
   const pages = document.querySelectorAll('.page');
+  // No final do seu script.js, verifique se esta linha está ativa:
 
   // --- FUNÇÃO AUXILIAR PARA FETCH COM AUTENTICAÇÃO ---
   async function fetchAutenticado(endpoint, options = {}) {
