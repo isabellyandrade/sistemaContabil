@@ -272,29 +272,37 @@ formNovaConta.addEventListener('submit', async e => {
     }
   }
 
-  formNovoLancamento.addEventListener('submit', async e => {
+formNovoLancamento.addEventListener('submit', async e => {
     e.preventDefault();
+    
+    const dataSelecionada = document.getElementById('data-lancamento').value; // Formato YYYY-MM-DD
+
     const novoLancamento = {
-      contaDebitoId: document.getElementById('conta-debito').value,
-      contaCreditoId: document.getElementById('conta-credito').value,
-      valor: document.getElementById('valor').value,
-      historico: document.getElementById('historico').value
+        data: dataSelecionada, // Agora enviamos a data escolhida!
+        contaDebitoId: document.getElementById('conta-debito').value,
+        contaCreditoId: document.getElementById('conta-credito').value,
+        valor: document.getElementById('valor').value,
+        historico: document.getElementById('historico').value
     };
 
     try {
-      const response = await fetchAutenticado('/lancamentos', {
-        method: 'POST',
-        body: JSON.stringify(novoLancamento)
-      });
-      if (!response.ok) throw new Error('Erro ao salvar lançamento');
+        const response = await fetchAutenticado('/lancamentos', {
+            method: 'POST',
+            body: JSON.stringify(novoLancamento)
+        });
+        if (!response.ok) throw new Error('Erro ao salvar lançamento');
 
-      formNovoLancamento.reset();
-      await carregarLancamentos();
+        // Limpa o form mas mantém a data de hoje para agilizar
+        formNovoLancamento.reset();
+        document.getElementById('data-lancamento').value = new Date().toISOString().split('T')[0];
+        
+        await carregarLancamentos();
+        alert("Lançamento salvo com sucesso!");
     } catch (e) {
-      console.error('Erro ao salvar lançamento:', e);
-      alert('Não foi possível salvar o lançamento.');
+        console.error('Erro ao salvar lançamento:', e);
+        alert('Não foi possível salvar o lançamento.');
     }
-  });
+});
 
   async function gerarLivroRazao() {
     const contaId = filtroContaRazao.value;
@@ -557,6 +565,9 @@ async function gerarBalancoPatrimonial() {
     const dataAnteriorFormatada = mesPassado.toISOString().split('T')[0];
     document.getElementById('data-balanco-anterior').value = dataAnteriorFormatada;
 }
+
+const hojeISO = new Date().toISOString().split('T')[0];
+document.getElementById('data-lancamento').value = hojeISO;
 
   function toggleModal() {
     modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';

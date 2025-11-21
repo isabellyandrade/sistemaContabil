@@ -278,21 +278,38 @@ app.get("/api/lancamentos", verificarToken, verificarMembro, async (req: Request
 });
 
 app.post("/api/lancamentos", verificarToken, verificarMembro, async (req: Request, res: Response) => {
-    const empresaId = (req as any).empresaId;;
-    const { historico, valor, contaDebitoId, contaCreditoId } = req.body;
+    const empresaId = (req as any).empresaId;
+    // Recebe a 'data' do corpo da requisição (YYYY-MM-DD)
+    const { historico, valor, contaDebitoId, contaCreditoId, data } = req.body;
+    
     const valorFormatado = parseFloat(String(valor).replace(',', '.'));
 
-        const novoLancamento = {
-                data: new Date().toLocaleDateString("pt-BR"),
-                historico,
-                valor: isNaN(valorFormatado) ? 0 : valorFormatado, // Salva 0 se o valor for inválido
-                 contaDebitoId,
-                contaCreditoId,
-                empresa_id: empresaId
-             };
-            const ref = db.ref("lancamentos").push();
-            await ref.set(novoLancamento);
-            res.status(201).json({ id: ref.key, ...novoLancamento });
+    // LÓGICA DE DATA:
+    // Se vier data do front, converte de YYYY-MM-DD para DD/MM/YYYY
+    // Se não vier, usa a data de hoje.
+    let dataParaSalvar = new Date().toLocaleDateString("pt-BR");
+    
+    if (data && data.includes('-')) {
+        const [ano, mes, dia] = data.split('-');
+        dataParaSalvar = `${dia}/${mes}/${ano}`;
+    }
+
+    const novoLancamento = {
+        data: dataParaSalvar, // <--- Usa a data formatada
+        historico,
+        valor: isNaN(valorFormatado) ? 0 : valorFormatado,
+        contaDebitoId,
+        contaCreditoId,
+        empresa_id: empresaId
+    };
+
+    try {
+        const ref = db.ref("lancamentos").push();
+        await ref.set(novoLancamento);
+        res.status(201).json({ id: ref.key, ...novoLancamento });
+    } catch (error) {
+        res.status(500).json({ message: "Erro ao salvar." });
+    }
 });
 
 app.delete("/api/lancamentos/:lancamentoId", verificarToken, verificarMembro, async (req: Request, res: Response) => {

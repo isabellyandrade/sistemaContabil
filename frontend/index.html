@@ -75,9 +75,23 @@
                   <form id="form-novo-lancamento" class="form-lancamento">
                     <button id="btnExcluirLancamento" class="btn-perigo" disabled>Excluir Lançamento</button>
                     <div class="form-grid">
-                      <div><label for="conta-debito">Conta Débito:</label><select id="conta-debito" required></select></div>
-                      <div><label for="conta-credito">Conta Crédito:</label><select id="conta-credito" required></select></div>
-                      <div><label for="valor">Valor (R$):</label><input type="number" id="valor" step="0.01" required></div>
+                      <div>
+                          <label for="data-lancamento">Data:</label>
+                          <input type="date" id="data-lancamento" required style="padding: 8px; border: 1px solid #ddd; border-radius: 5px; width: 100%;">
+                      </div>
+                      
+                      <div>
+                          <label for="conta-debito">Conta Débito:</label>
+                          <select id="conta-debito" required></select>
+                      </div>
+                      <div>
+                          <label for="conta-credito">Conta Crédito:</label>
+                          <select id="conta-credito" required></select>
+                      </div>
+                      <div>
+                          <label for="valor">Valor (R$):</label>
+                          <input type="number" id="valor" step="0.01" required>
+                      </div>
                     </div>
                     <label for="historico">Histórico (Descrição):</label><textarea id="historico" rows="3" required></textarea>
                     <button type="submit">Salvar Lançamento</button>
