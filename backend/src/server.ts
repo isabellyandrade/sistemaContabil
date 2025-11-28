@@ -622,7 +622,7 @@ app.get("/api/indicadores", verificarToken, verificarMembro, async (req: Request
         const snapshotGlobal = await db.ref("contas").orderByChild('dono_uid').equalTo('GLOBAL').once("value");
         const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
 
-        const contas = [...firebaseObjectToArray(snapshotGlobal.val()), ...firebaseObjectToArray(snapshotEmpresa.val())];
+        const contas = [...firebaseObjectToArray(snapshotGlobal.val()), ...firebaseObjectToArray(contasSnap.val())];
         const lancamentos = firebaseObjectToArray(lancSnap.val());
 
         // 2. Calcula saldo individual
