@@ -44,6 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnGerarRazao = document.getElementById('btnGerarRazao');
   const btnGerarBalanco = document.getElementById('btnGerarBalanco');
 
+  const btnAtualizarIndicadores = document.getElementById('btnAtualizarIndicadores');
+  const tbodyLiquidez = document.getElementById('tbody-liquidez');
+  const tbodyRetorno = document.getElementById('tbody-retorno');
+
   // --- ELEMENTOS DO Balanço Patrimonial ---
   const ladoAtivoDiv = document.getElementById('lado-ativo');
   const ladoPassivoPlDiv = document.getElementById('lado-passivo-pl');
@@ -746,6 +750,72 @@ function renderizarContasDRE(contas, grupoPai, totalBase) {
     return { html, total };
 }
 
+async function gerarIndicadores() {
+    try {
+        const response = await fetchAutenticado('/indicadores');
+        const dados = await response.json();
+        const v = dados.valores; // Atalho para os valores brutos
+
+        // Função auxiliar para formatar moeda
+        const fmt = (n) => n.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        const pct = (n) => (n * 100).toFixed(2) + '%'; // Formata porcentagem
+
+        // Preenche Liquidez
+        tbodyLiquidez.innerHTML = `
+            <tr>
+                <td><strong>Imediata</strong></td>
+                <td>Disp. / Pass. Circ.</td>
+                <td>${fmt(v.disponivel)} / ${fmt(v.passivoCirculante)}</td>
+                <td class="resultado-final">${dados.liquidez.imediata.toFixed(2)}</td>
+            </tr>
+            <tr>
+                <td><strong>Seca</strong></td>
+                <td>(Ativo Circ. - Est.) / Pass. Circ.</td>
+                <td>(${fmt(v.ativoCirculante)} - ${fmt(v.estoques)}) / ${fmt(v.passivoCirculante)}</td>
+                <td class="resultado-final">${dados.liquidez.seca.toFixed(2)}</td>
+            </tr>
+            <tr>
+                <td><strong>Corrente</strong></td>
+                <td>Ativo Circ. / Pass. Circ.</td>
+                <td>${fmt(v.ativoCirculante)} / ${fmt(v.passivoCirculante)}</td>
+                <td class="resultado-final">${dados.liquidez.corrente.toFixed(2)}</td>
+            </tr>
+            <tr>
+                <td><strong>Geral</strong></td>
+                <td>(AC + RLP) / (PC + PNC)</td>
+                <td>${fmt(v.ativoCirculante + v.realizavelLongoPrazo)} / ${fmt(v.passivoTotal)}</td>
+                <td class="resultado-final">${dados.liquidez.geral.toFixed(2)}</td>
+            </tr>
+        `;
+
+        // Preenche Retorno
+        tbodyRetorno.innerHTML = `
+            <tr>
+                <td><strong>ROA</strong></td>
+                <td>Lucro Líq. / Ativo Total</td>
+                <td>${fmt(v.lucroLiquido)} / ${fmt(v.ativoTotal)}</td>
+                <td class="resultado-final">${pct(dados.retorno.roa)}</td>
+            </tr>
+             <tr>
+                <td><strong>ROI</strong></td>
+                <td>Ganho / Investimento</td>
+                <td>${fmt(v.ganhoInvestimento)} / ${fmt(v.custoInvestimento)}</td>
+                <td class="resultado-final">${pct(dados.retorno.roi)}</td>
+            </tr>
+             <tr>
+                <td><strong>ROE</strong></td>
+                <td>Lucro Líq. / Patr. Líq.</td>
+                <td>${fmt(v.lucroLiquido)} / ${fmt(v.patrimonioLiquido)}</td>
+                <td class="resultado-final">${pct(dados.retorno.roe)}</td>
+            </tr>
+        `;
+
+    } catch (error) {
+        console.error("Erro ao carregar indicadores:", error);
+        alert("Erro ao calcular indicadores.");
+    }
+}
+
   // --- INICIALIZAÇÃO DO APLICATIVO ---
   async function inicializarApp() {
       menuItems.forEach(item => item.addEventListener('click', () => showPage(item.dataset.page)));
@@ -753,6 +823,7 @@ function renderizarContasDRE(contas, grupoPai, totalBase) {
       btnFecharModal.addEventListener('click', toggleModal);
       btnGerarBalanco.addEventListener('click', gerarBalancoPatrimonial);
       btnGerarRazao.addEventListener('click', gerarLivroRazao);
+      btnAtualizarIndicadores.addEventListener('click', gerarIndicadores);
 
       definirDatasPadrao();
       definirDatasDREPadrao();

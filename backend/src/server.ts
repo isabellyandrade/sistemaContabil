@@ -612,6 +612,96 @@ app.get("/api/dre", verificarToken, verificarMembro, async (req: Request, res: R
     }
 });
 
+// Rota para INDICADORES FINANCEIROS
+app.get("/api/indicadores", verificarToken, verificarMembro, async (req: Request, res: Response) => {
+    try {
+        const empresaId = (req as any).empresaId;
+        
+        // 1. Busca dados
+        const contasSnap = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
+        const lancSnap = await db.ref("lancamentos").orderByChild('empresa_id').equalTo(empresaId).once("value");
+        const contas = firebaseObjectToArray(contasSnap.val());
+        const lancamentos = firebaseObjectToArray(lancSnap.val());
+
+        // 2. Calcula saldo de cada conta individualmente
+        const contasComSaldo = contas.map((conta: any) => {
+            const totalDebito = lancamentos.filter((l: any) => l.contaDebitoId === conta.id).reduce((s, l: any) => s + l.valor, 0);
+            const totalCredito = lancamentos.filter((l: any) => l.contaCreditoId === conta.id).reduce((s, l: any) => s + l.valor, 0);
+            
+            // Define saldo baseado na natureza (Ativo/Despesa = Devedora, Passivo/Receita/PL = Credora)
+            let saldo = 0;
+            if (['Ativo', 'Despesas'].includes(conta.grupo_contabil)) {
+                saldo = totalDebito - totalCredito;
+            } else {
+                saldo = totalCredito - totalDebito;
+            }
+            return { ...conta, saldo };
+        });
+
+        // 3. Função auxiliar para somar por filtro
+        const somarPor = (filtro: (c: any) => boolean) => {
+            return contasComSaldo.filter(filtro).reduce((acc, c) => acc + c.saldo, 0);
+        };
+
+        // 4. Agrupamentos para as Fórmulas
+        const ativoCirculante = somarPor(c => c.subgrupo1 === 'Ativo Circulante');
+        const ativoNaoCirculante = somarPor(c => c.subgrupo1 === 'Ativo Não Circulante');
+        const ativoTotal = ativoCirculante + ativoNaoCirculante;
+
+        const passivoCirculante = somarPor(c => c.subgrupo1 === 'Passivo Circulante');
+        const passivoNaoCirculante = somarPor(c => c.subgrupo1 === 'Passivo Não Circulante');
+        const passivoTotal = passivoCirculante + passivoNaoCirculante; // Exigível Total
+
+        const patrimonioLiquido = somarPor(c => c.grupo_contabil === 'Patrimônio Líquido');
+        
+        // Específicos
+        const disponivel = somarPor(c => c.subgrupo2 === 'Disponibilidades'); // Caixa + Bancos
+        // Procura por subgrupo Estoques OU nome contendo "Estoque" ou "Mercadoria"
+        const estoques = somarPor(c => c.subgrupo2 === 'Estoques' || c.nome_conta.includes('Estoque') || c.nome_conta.includes('Mercadoria'));
+        const realizavelLongoPrazo = somarPor(c => c.subgrupo2 === 'Realizável a Longo Prazo');
+
+        // DRE (Para os índices de retorno)
+        const receitas = somarPor(c => c.grupo_contabil === 'Receitas');
+        const despesas = somarPor(c => c.grupo_contabil === 'Despesas');
+        const lucroLiquido = receitas - despesas;
+
+        // ROI Específico (Tentativa de identificar Investimentos)
+        // Aqui tentamos achar contas que tenham "Investimento" no nome para o custo
+        const custoInvestimento = somarPor(c => c.nome_conta.includes('Investimento') && c.grupo_contabil === 'Ativo');
+        // E receitas vinculadas a investimento
+        const ganhoInvestimento = somarPor(c => (c.nome_conta.includes('Rendimento') || c.nome_conta.includes('Dividendos')) && c.grupo_contabil === 'Receitas');
+        
+        // 5. Cálculo dos Índices (Evitando divisão por zero)
+        const calc = (num: number, den: number) => den === 0 ? 0 : num / den;
+
+        const indicadores = {
+            liquidez: {
+                imediata: calc(disponivel, passivoCirculante),
+                seca: calc((ativoCirculante - estoques), passivoCirculante),
+                corrente: calc(ativoCirculante, passivoCirculante),
+                geral: calc((ativoCirculante + realizavelLongoPrazo), (passivoCirculante + passivoNaoCirculante)),
+                solvencia: calc(ativoTotal, (passivoTotal)) // Solvência Geral costuma ser Ativo / (Passivo Circ + Não Circ)
+            },
+            retorno: {
+                roa: calc(lucroLiquido, ativoTotal), // Return on Assets
+                roi: calc(ganhoInvestimento, custoInvestimento), // Return on Investment (Simplificado)
+                roe: calc(lucroLiquido, patrimonioLiquido) // Return on Equity
+            },
+            valores: {
+                disponivel, passivoCirculante, ativoCirculante, estoques, 
+                realizavelLongoPrazo, passivoTotal, ativoTotal, 
+                lucroLiquido, custoInvestimento, ganhoInvestimento, patrimonioLiquido
+            }
+        };
+
+        return res.status(200).json(indicadores);
+
+    } catch (error) {
+        console.error("Erro ao calcular indicadores:", error);
+        return res.status(500).json({ message: "Erro interno ao calcular indicadores." });
+    }
+});
+
 // ===================================================
 // SERVIR O FRONTEND VEM POR ÚLTIMO
 // ===================================================
