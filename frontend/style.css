@@ -401,37 +401,77 @@ background-color: #ecf0f1;
     padding-top: 8px;
 }
 
-.dash-grid {
+/* Layout Geral */
+.indicadores-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Duas colunas */
-  gap: 20px;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
   margin-top: 20px;
 }
+@media (max-width: 768px) { .indicadores-grid { grid-template-columns: 1fr; } }
 
+/* Cartões Base */
 .card-indicador {
-  background: white;
-  padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  font-family: sans-serif;
 }
 
-.card-indicador h3 { text-align: center; margin-bottom: 15px; }
+/* Cabeçalho (Título do Grupo) */
+.card-indicador h3 {
+  text-align: center;
+  padding: 15px;
+  margin: 0;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #000; /* Texto preto */
+}
 
-/* Estilos das Tabelas de Indicadores */
-.tabela-indicadores { width: 100%; border-collapse: collapse; }
-.tabela-indicadores th { padding: 10px; text-align: center; color: white; }
-.tabela-indicadores td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px; }
+/* Cores dos Cabeçalhos */
+.azul h3 { background-color: #a9cce3; } /* Azul claro */
+.laranja h3 { background-color: #f5cba7; } /* Laranja claro */
 
-/* Cores Específicas */
-.azul h3 { color: #2980b9; }
-.azul th { background-color: #3498db; }
-.azul .resultado-final { background-color: #e74c3c; color: white; font-weight: bold; } /* Fundo vermelho para o número final */
+/* Lista de Índices */
+.lista-indices {
+  display: flex;
+  flex-direction: column;
+}
 
-.laranja h3 { color: #d35400; }
-.laranja th { background-color: #e67e22; }
-.laranja .resultado-final { background-color: #e74c3c; color: white; font-weight: bold; }
+/* Linha de cada Índice */
+.indice-item {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
 
-/* Responsividade para telas pequenas */
-@media (max-width: 768px) {
-  .dash-grid { grid-template-columns: 1fr; }
+/* Nome do Índice e Descrição */
+.indice-info {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 15px;
+  background-color: #d6eaf8; /* Azul bem clarinho padrão */
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+.laranja .indice-info { background-color: #fae5d3; } /* Laranja bem clarinho */
+
+/* A Faixa Vermelha com o Resultado (Igual à imagem) */
+.indice-valor {
+  background-color: red;
+  color: white;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  padding: 5px;
+}
+
+/* Texto descritivo abaixo do título (ex: "Disponível | Passivo Circulante") */
+.indice-detalhe {
+  font-size: 0.8rem;
+  text-align: center;
+  background-color: rgba(255,255,255,0.5);
+  padding: 2px;
+  margin-bottom: 2px;
+  font-weight: normal;
 }
