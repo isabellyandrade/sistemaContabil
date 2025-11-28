@@ -183,21 +183,29 @@
               <h1>Indicadores Financeiros</h1>
             </header>
             <div class="container">
-               <div class="toolbar" style="text-align: right;">
-                  <button id="btnAtualizarIndicadores">Atualizar</button>
+               <div class="toolbar">
+                  <button id="btnAtualizarIndicadores">Atualizar Indicadores</button>
                </div>
     
-               <div class="indicadores-grid">
+               <div class="dash-grid">
                    <div class="card-indicador azul">
-                       <h3>Índice de Liquidez</h3>
-                       <div id="lista-liquidez" class="lista-indices">
-                           </div>
+                       <h3>Índices de Liquidez</h3>
+                       <table class="tabela-indicadores">
+                           <thead>
+                               <tr><th>Índice</th><th>Fórmula</th><th>Cálculo</th><th>Resultado</th></tr>
+                           </thead>
+                           <tbody id="tbody-liquidez"></tbody>
+                       </table>
                    </div>
     
                    <div class="card-indicador laranja">
-                       <h3>Índice de Retorno</h3>
-                       <div id="lista-retorno" class="lista-indices">
-                           </div>
+                       <h3>Índices de Retorno</h3>
+                       <table class="tabela-indicadores">
+                           <thead>
+                               <tr><th>Índice</th><th>Fórmula</th><th>Cálculo</th><th>Resultado</th></tr>
+                           </thead>
+                           <tbody id="tbody-retorno"></tbody>
+                       </table>
                    </div>
                </div>
             </div>
