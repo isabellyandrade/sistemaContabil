@@ -390,9 +390,11 @@ background-color: #ecf0f1;
 .dre-lucro { color: green; }
 .dre-prejuizo { color: red; }
 .dre-conta, .balanco-header-cols, .dre-subtotal {
-    display: grid;
-    grid-template-columns: 2fr 1fr 0.5fr;
-    padding: 5px 0;
+  display: grid;
+  grid-template-columns: 4.5fr 2.5fr 1.5fr 1.5fr; 
+  gap: 10px;
+  align-items: center;
+  padding: 10px 15px;
 }
 .dre-subtotal {
     font-weight: bold;
