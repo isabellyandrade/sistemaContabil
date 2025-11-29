@@ -616,7 +616,7 @@ app.get("/api/dre", verificarToken, verificarMembro, async (req: Request, res: R
 app.get("/api/indicadores", verificarToken, verificarMembro, async (req: Request, res: Response) => {
     try {
         const empresaId = (req as any).empresaId;
-        
+
         // 1. Busca dados
         const contasSnap = await db.ref("contas").orderByChild('empresa_id').equalTo(empresaId).once("value");
         const snapshotGlobal = await db.ref("contas").orderByChild('dono_uid').equalTo('GLOBAL').once("value");
@@ -639,83 +639,85 @@ app.get("/api/indicadores", verificarToken, verificarMembro, async (req: Request
             return { ...conta, saldo };
         });
 
-        // 3. Helpers de soma
-        const somaPorSubgrupo1 = (nome: string) => contasComSaldo.filter(c => c.subgrupo1 === nome).reduce((acc, c) => acc + c.saldo, 0);
-        const somaPorGrupo = (nome: string) => contasComSaldo.filter(c => c.grupo_contabil === nome).reduce((acc, c) => acc + c.saldo, 0);
-        
-        // 4. Variáveis Gerais
-        const ativoCirculante = somaPorSubgrupo1('Ativo Circulante');
-        const ativoNaoCirculante = somaPorSubgrupo1('Ativo Não Circulante');
+        // 3. Helpers de soma FLEXÍVEIS (toLowerCase para ignorar maiúsculas/minúsculas)
+        const filtrar = (lista: any[], termo: string) => lista.filter(c => 
+            c.subgrupo1 && c.subgrupo1.toLowerCase().includes(termo)
+        );
+        const somar = (lista: any[]) => lista.reduce((acc, c) => acc + c.saldo, 0);
+
+        // 4. Identificação Inteligente dos Grupos
+        const contasAtivo = contasComSaldo.filter(c => c.grupo_contabil === 'Ativo');
+        const contasPassivo = contasComSaldo.filter(c => c.grupo_contabil === 'Passivo');
+
+        // Circulante: Tem "circulante" no nome e NÃO tem "não"
+        const ativoCirculante = somar(contasAtivo.filter(c => 
+            c.subgrupo1.toLowerCase().includes('circulante') && !c.subgrupo1.toLowerCase().includes('não')
+        ));
+        const passivoCirculante = somar(contasPassivo.filter(c => 
+            c.subgrupo1.toLowerCase().includes('circulante') && !c.subgrupo1.toLowerCase().includes('não')
+        ));
+
+        // Não Circulante: Tem "não" e "circulante" (ou "longo prazo")
+        const ativoNaoCirculante = somar(contasAtivo.filter(c => 
+            c.subgrupo1.toLowerCase().includes('não') || c.subgrupo1.toLowerCase().includes('longo')
+        ));
+        const passivoNaoCirculante = somar(contasPassivo.filter(c => 
+            c.subgrupo1.toLowerCase().includes('não') || c.subgrupo1.toLowerCase().includes('longo')
+        ));
+
         const ativoTotal = ativoCirculante + ativoNaoCirculante;
-
-        const passivoCirculante = somaPorSubgrupo1('Passivo Circulante');
-        const passivoNaoCirculante = somaPorSubgrupo1('Passivo Não Circulante');
         const passivoTotal = passivoCirculante + passivoNaoCirculante;
+        const patrimonioLiquido = somar(contasComSaldo.filter(c => c.grupo_contabil === 'Patrimônio Líquido'));
 
-        const patrimonioLiquido = somaPorGrupo('Patrimônio Líquido');
+        // Específicos
+        const disponivel = somar(contasComSaldo.filter(c => 
+            (c.subgrupo2 && c.subgrupo2.toLowerCase().includes('disponib')) || c.nome_conta.toLowerCase().includes('caixa') || c.nome_conta.toLowerCase().includes('banco')
+        ));
         
-        // --- REGRA 1: ESTOQUE OU MERCADORIA ---
-        // Procura por contas que tenham 'estoque' OU 'mercadoria' no nome, ou estejam no subgrupo 'Estoques'
-        const estoques = contasComSaldo.filter(c => 
-            c.subgrupo2 === 'Estoques' || 
-            c.nome_conta.toLowerCase().includes('estoque') || 
-            c.nome_conta.toLowerCase().includes('mercadoria')
-        ).reduce((acc, c) => acc + c.saldo, 0);
+        const estoques = somar(contasComSaldo.filter(c => 
+            (c.subgrupo2 && c.subgrupo2.toLowerCase().includes('estoque')) || c.nome_conta.toLowerCase().includes('mercadoria') || c.nome_conta.toLowerCase().includes('estoque')
+        ));
 
-        const disponivel = contasComSaldo.filter(c => c.subgrupo2 === 'Disponibilidades').reduce((acc, c) => acc + c.saldo, 0);
-        const realizavelLongoPrazo = contasComSaldo.filter(c => c.subgrupo2 === 'Realizável a Longo Prazo').reduce((acc, c) => acc + c.saldo, 0);
+        const realizavelLongoPrazo = somar(contasComSaldo.filter(c => 
+            c.subgrupo2 && (c.subgrupo2.toLowerCase().includes('realizável') || c.subgrupo2.toLowerCase().includes('longo'))
+        ));
 
-        // DRE
-        const receitas = somaPorGrupo('Receitas');
-        const despesas = somaPorGrupo('Despesas');
+        // DRE e ROI
+        const receitas = somar(contasComSaldo.filter(c => c.grupo_contabil === 'Receitas'));
+        const despesas = somar(contasComSaldo.filter(c => c.grupo_contabil === 'Despesas'));
         const lucroLiquido = receitas - despesas;
 
-        // --- REGRA 2: ROI (INVESTIMENTO E RETORNO) ---
-        
-        // Custo: Contas do ATIVO que tenham "Investimento" ou "Aplicação" no nome
-        const custoInvestimento = contasComSaldo.filter(c => 
-            c.grupo_contabil === 'Ativo' && 
-            (c.nome_conta.toLowerCase().includes('investimento') || c.nome_conta.toLowerCase().includes('aplicação'))
-        ).reduce((acc, c) => acc + c.saldo, 0);
+        const custoInvestimento = somar(contasAtivo.filter(c => c.nome_conta.toLowerCase().includes('investimento') || c.nome_conta.toLowerCase().includes('aplicação')));
+        const ganhoInvestimento = somar(contasComSaldo.filter(c => c.grupo_contabil === 'Receitas' && (c.nome_conta.toLowerCase().includes('rendimento') || c.nome_conta.toLowerCase().includes('juros'))));
 
-        // Ganho: Contas de RECEITA que tenham "Rendimento", "Dividendos", "Juros" ou "Retorno" no nome
-        const ganhoInvestimento = contasComSaldo.filter(c => 
-            c.grupo_contabil === 'Receitas' && 
-            (c.nome_conta.toLowerCase().includes('rendimento') || 
-             c.nome_conta.toLowerCase().includes('dividendo') || 
-             c.nome_conta.toLowerCase().includes('juros') ||
-             c.nome_conta.toLowerCase().includes('retorno'))
-        ).reduce((acc, c) => acc + c.saldo, 0);
-
-        
         // 5. Cálculos Finais
         const div = (n: number, d: number) => d === 0 ? 0 : n / d;
 
         const resposta = {
             valores: {
                 disponivel, passivoCirculante, ativoCirculante, estoques, 
-                realizavelLongoPrazo, passivoTotal, passivoNaoCirculante, ativoTotal, 
-                lucroLiquido, patrimonioLiquido,
-                custoInvestimento, ganhoInvestimento
+                realizavelLongoPrazo, passivoTotal, ativoTotal, 
+                lucroLiquido, patrimonioLiquido, custoInvestimento, ganhoInvestimento
             },
             liquidez: {
                 imediata: div(disponivel, passivoCirculante),
                 seca: div((ativoCirculante - estoques), passivoCirculante),
                 corrente: div(ativoCirculante, passivoCirculante),
-                geral: div((ativoCirculante + realizavelLongoPrazo), passivoTotal),
+                geral: div((ativoCirculante + realizavelLongoPrazo), (passivoCirculante + passivoNaoCirculante)),
                 solvencia: div(ativoTotal, passivoTotal)
             },
             retorno: {
-                roa: div(lucroLiquido, ativoTotal), 
+                // CORREÇÃO: Removido o '* 100' para retornar decimal puro (ex: 0.05)
+                roa: div(lucroLiquido, ativoTotal),
                 roi: div(ganhoInvestimento, custoInvestimento), 
-                roe: div(lucroLiquido, patrimonioLiquido) 
+                roe: div(lucroLiquido, patrimonioLiquido)
             }
         };
 
         return res.status(200).json(resposta);
 
     } catch (error) {
-        console.error("Erro ao calcular indicadores:", error);
+        console.error("Erro indicadores:", error);
         return res.status(500).json({ message: "Erro interno." });
     }
 });
