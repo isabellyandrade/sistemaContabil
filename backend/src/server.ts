@@ -706,10 +706,9 @@ app.get("/api/indicadores", verificarToken, verificarMembro, async (req: Request
                 solvencia: div(ativoTotal, passivoTotal)
             },
             retorno: {
-                roa: div(lucroLiquido, ativoTotal) * 100,
-                // Aqui aplicamos a lógica da sua imagem: Ganho / Custo
-                roi: div(ganhoInvestimento, custoInvestimento) * 100, 
-                roe: div(lucroLiquido, patrimonioLiquido) * 100
+                roa: div(lucroLiquido, ativoTotal), 
+                roi: div(ganhoInvestimento, custoInvestimento), 
+                roe: div(lucroLiquido, patrimonioLiquido) 
             }
         };
 

@@ -758,7 +758,7 @@ async function gerarIndicadores() {
 
         // Função auxiliar para formatar moeda
         const fmt = (n) => n.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
-        const pct = (n) => (n * 100).toFixed(2) + '%'; // Formata porcentagem
+        const pct = (n) => (n * 100).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%';
 
         // Preenche Liquidez
         tbodyLiquidez.innerHTML = `
